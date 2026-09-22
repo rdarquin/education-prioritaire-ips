@@ -19,6 +19,9 @@ data/processed/*
 # Notes personnelles : espace de brouillon, pas un livrable.
 NOTES.md
 
+# Cache HTTP depose par cartiflette a la racine du projet.
+http_cache.sqlite
+
 # Jupyter
 .ipynb_checkpoints/
 
