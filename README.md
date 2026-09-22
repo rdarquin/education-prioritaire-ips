@@ -37,8 +37,10 @@ L'intérêt de l'analyse se déplace par conséquent vers les **divergences** : 
 et ces exceptions dessinent-elles une géographie particulière — rural, villes
 moyennes, outre-mer ?
 
-*Chiffres provisoires issus d'une passe exploratoire, à consolider une fois le
-pipeline de nettoyage écrit.*
+*Chiffres produits par `src/preparation.py` sur 36 738 établissements retenus
+(29 764 écoles, 6 974 collèges) après exclusion des établissements non appariés à
+l'annuaire et de ceux dont l'IPS n'est pas publié. Voir « Méthode » pour le détail
+des exclusions.*
 
 ---
 
@@ -137,9 +139,46 @@ outputs/figures/   figures du rapport (versionnées : elles font partie du livra
 
 ## Méthode
 
-🚧 *À compléter au fil des étapes : contrôles qualité effectués, traitement des
-valeurs manquantes et des établissements non appariés, mesures d'inégalité retenues
-(indice de dissimilarité de Duncan, indice de Moran), choix cartographiques.*
+### Construction du fichier d'analyse
+
+`src/preparation.py` part des trois fichiers bruts et produit
+`data/processed/etablissements_2024_2025.csv` : une ligne par établissement.
+
+| Étape | Effet |
+|---|---:|
+| Fichiers IPS bruts (3 rentrées) | 118 141 lignes |
+| Filtrage sur la rentrée 2024-2025 | 39 481 |
+| Exclusion des non-appariés à l'annuaire | −307 |
+| Exclusion des IPS non publiés | −2 505 |
+| **Retenus** (chevauchement de 69 lignes) | **36 738** |
+
+Les 36 738 établissements retenus disposent tous de coordonnées géographiques.
+
+### Contrôles effectués
+
+**Doublons de l'annuaire.** 75 UAI y figurent en double. Avant d'en conserver
+arbitrairement la première occurrence, on vérifie que les lignes concernées ne se
+contredisent pas : **aucune divergence** sur les coordonnées ni sur le statut
+d'éducation prioritaire. Le choix est donc sans conséquence. La jointure est par
+ailleurs déclarée `one_to_one`, ce qui la fait échouer bruyamment plutôt que de
+dupliquer silencieusement des lignes.
+
+**Biais d'exclusion des IPS non publiés.** 2 505 établissements (6,3 %), presque
+exclusivement des écoles, n'ont pas d'IPS publié — la DEPP ne diffuse l'indice que
+pour les écoles ayant compté au moins 25 élèves de CM2 sur cinq ans. Ces petites
+écoles, majoritairement rurales, ne sont **que 4,3 % à relever de l'éducation
+prioritaire, contre 12,3 % de l'ensemble**. Leur exclusion retire donc surtout des
+établissements hors dispositif : elle est peu susceptible de fausser la
+comparaison, sans être pour autant neutre (environ 110 établissements classés sont
+perdus).
+
+**Établissements non appariés.** 307 établissements (0,8 %) sont absents de
+l'annuaire, dont 295 écoles, concentrées dans le Pas-de-Calais, la Seine-Maritime
+et la Charente-Maritime. Vraisemblablement fermés ou regroupés entre la collecte de
+l'IPS et la mise à jour de l'annuaire.
+
+🚧 *À compléter : mesures d'inégalité retenues (indice de dissimilarité de Duncan,
+indice de Moran), choix cartographiques.*
 
 ## Résultats
 
