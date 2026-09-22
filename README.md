@@ -1,14 +1,73 @@
-# Cartographie des inégalités scolaires en France
+# Éducation prioritaire et réalité sociale des établissements
 
 > **Statut : en cours de construction.** Les sections marquées 🚧 restent à rédiger.
 
-Analyse territoriale de l'**indice de position sociale (IPS)** des écoles et collèges
-français : mesure des disparités, cartographie, et comparaison des secteurs public et
-privé sous contrat.
+**Le classement en éducation prioritaire coïncide-t-il avec la réalité sociale des
+établissements, mesurée par l'indice de position sociale (IPS) ? Et là où les deux
+divergent, que nous apprennent ces exceptions ?**
 
-🚧 *À compléter : 3–4 phrases résumant la question posée et le principal résultat.
-C'est le paragraphe que les lecteurs liront réellement — à écrire en dernier, une fois
-les résultats connus.*
+Ce travail confronte deux mesures du même phénomène : d'un côté le classement
+administratif en REP et REP+, de l'autre l'IPS publié par la DEPP pour chaque école
+et chaque collège. Il quantifie leur recouvrement, identifie les établissements
+socialement défavorisés situés hors du dispositif, et cartographie leur répartition
+territoriale.
+
+🚧 *À compléter en fin de projet : 2–3 phrases donnant le principal résultat chiffré.*
+
+---
+
+## Cadrage préalable
+
+Un premier examen des données écarte d'emblée la question naïve — « le ciblage
+est-il correct ? ». Rentrée 2024-2025 :
+
+| Statut | Écoles | IPS moyen | Collèges | IPS moyen |
+|---|---:|---:|---:|---:|
+| REP+ | 1 300 | **77,2** | 362 | **74,6** |
+| REP | 2 317 | **85,7** | 732 | **86,0** |
+| Hors dispositif | 26 147 | **107,9** | 5 880 | **109,2** |
+
+L'écart entre REP+ et hors dispositif atteint **30 points pour les écoles et 35 pour
+les collèges**, quand la DEPP recommande de ne pas interpréter des différences de
+3 points ou moins. Le ciblage est donc globalement très cohérent avec la réalité
+sociale mesurée par l'IPS.
+
+L'intérêt de l'analyse se déplace par conséquent vers les **divergences** : quels
+établissements socialement défavorisés restent hors dispositif, où se situent-ils,
+et ces exceptions dessinent-elles une géographie particulière — rural, villes
+moyennes, outre-mer ?
+
+*Chiffres provisoires issus d'une passe exploratoire, à consolider une fois le
+pipeline de nettoyage écrit.*
+
+---
+
+## Précautions méthodologiques
+
+**1. Le classement en éducation prioritaire ne repose pas sur l'IPS.** Il s'appuie
+sur d'autres critères sociaux. Un écart entre les deux ne constitue donc pas une
+erreur de l'administration — c'est la confrontation de deux instruments de mesure,
+dont l'analyse des divergences est précisément l'objet de ce travail.
+
+**2. L'éducation prioritaire est organisée en réseaux, non en établissements
+isolés.** Un réseau associe un collège aux écoles dont les élèves y sont orientés,
+et c'est l'ensemble du réseau qui est classé. Le label d'une école découle donc de
+celui de son collège de secteur. Une école socialement favorisée peut être classée
+REP parce qu'elle alimente un collège défavorisé : ce n'est pas une anomalie de
+ciblage, c'est la conception du dispositif.
+
+Les données confirment cette organisation de deux façons : **aucun lycée** ne porte
+de label (0 sur 5 600), et l'on compte **environ six écoles labellisées par collège
+labellisé** (6 552 pour 1 104), soit l'ordre de grandeur d'un secteur de recrutement.
+Le lien école → collège n'étant pas présent dans les fichiers utilisés, cette
+structure est cohérente avec les données sans être démontrée par elles ; la liste
+officielle des réseaux serait nécessaire pour la confirmer.
+
+Cette organisation n'altère toutefois pas la lisibilité des résultats : l'écart
+d'IPS entre établissements classés et non classés est de même ampleur pour les
+écoles (−22 points en REP, −31 en REP+) que pour les collèges (−23 et −35). Le
+classement des écoles suit donc leur propre réalité sociale presque aussi
+étroitement que celui des collèges.
 
 ---
 
