@@ -1,7 +1,5 @@
 """Telechargement des donnees brutes depuis l'API Opendatasoft.
 
-SQUELETTE A REMPLIR. Les corps de fonction sont vides : a toi de les ecrire.
-
 Objectif du module : rendre `data/raw/` entierement reconstructible.
 Quelqu'un qui clone ce depot n'a aucun fichier de donnees ; il doit pouvoir
 lancer une seule commande et se retrouver avec les memes donnees que toi.
@@ -44,9 +42,7 @@ def build_export_url(dataset_id: str) -> str:
     Returns:
         L'URL complete, parametres inclus.
     """
-    # TODO (1) : assembler l'URL de base a partir de API_BASE et dataset_id
-    # TODO (2) : y ajouter les parametres de requete
-    ...
+    return f"{API_BASE}/{dataset_id}/exports/csv?delimiter=;&use_labels=false"
 
 
 def download_dataset(dataset_id: str, destination: Path, force: bool = False) -> Path:
@@ -60,38 +56,49 @@ def download_dataset(dataset_id: str, destination: Path, force: bool = False) ->
     Returns:
         Le chemin du fichier ecrit.
 
-    Points d'attention :
-
-      - IDEMPOTENCE. Le parametre `force` n'est pas un gadget. L'annuaire
-        pese plusieurs dizaines de Mo ; tu vas relancer ce script des
-        dizaines de fois pendant le projet. Un script qui ne retelecharge
-        pas ce qu'il a deja est un script qu'on ose relancer.
-
-      - TELECHARGEMENT EN FLUX. `requests.get(url)` charge la reponse
-        entiere en memoire avant de te la rendre. Pour un gros fichier, on
-        prefere `stream=True` puis une ecriture par morceaux
-        (`iter_content`). Regarde la doc de requests sur ce point.
-
-      - ERREURS SILENCIEUSES. Si le serveur repond 404 ou 500, requests ne
-        leve PAS d'exception tout seul : tu ecrirais tranquillement une page
-        d'erreur HTML dans un fichier .csv, et tu ne t'en apercevrais qu'en
-        voyant pandas echouer trois etapes plus loin. Cherche la methode de
-        l'objet Response qui transforme un code d'erreur HTTP en exception,
-        et appelle-la avant d'ecrire quoi que ce soit.
-
-      - DOSSIER MANQUANT. Assure-toi que le dossier parent existe avant
-        d'ecrire (`Path.mkdir` a un argument fait pour ca).
+    Raises:
+        requests.HTTPError: si l'API repond un code d'erreur (404, 500...).
     """
-    # TODO (1) : si le fichier existe et force est False -> afficher un
-    #            message et retourner destination sans rien telecharger
-    # TODO (2) : construire l'URL via build_export_url
-    # TODO (3) : lancer la requete en mode flux
-    # TODO (4) : verifier le code de reponse HTTP
-    # TODO (5) : creer le dossier parent si besoin
-    # TODO (6) : ecrire la reponse sur disque par morceaux
-    # TODO (7) : afficher un message de confirmation (nom + taille du fichier)
-    #            et retourner destination
-    ...
+    # (1) Idempotence. Relancer le script ne doit rien couter quand les
+    # donnees sont deja la : c'est ce qui permet de l'executer sans hesiter.
+    if destination.exists() and not force:
+        print(f"[=] {destination.name} deja present, telechargement ignore.")
+        return destination
+
+    url = build_export_url(dataset_id)
+    print(f"[>] Telechargement de {dataset_id} ...")
+
+    # (2) stream=True : la reponse n'est pas chargee entierement en memoire,
+    # on la lira par morceaux. timeout : sans lui, un serveur qui cesse de
+    # repondre bloquerait le script indefiniment, sans aucun message.
+    response = requests.get(url, stream=True, timeout=60)
+
+    # (3) Sans cet appel, une reponse 404 serait ecrite telle quelle dans le
+    # fichier : on croirait avoir des donnees, et l'erreur n'apparaitrait que
+    # bien plus tard, sous une forme incomprehensible.
+    response.raise_for_status()
+
+    # (4) data/raw/ n'est pas versionne : il peut tres bien ne pas exister
+    # sur la machine qui vient de cloner le depot.
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    # (5) On ecrit d'abord dans un fichier temporaire, renomme seulement une
+    # fois le telechargement acheve. Sans cette precaution, une coupure en
+    # cours de route laisserait un fichier tronque que le test (1) prendrait
+    # ensuite pour un telechargement reussi.
+    temporaire = destination.with_name(destination.name + ".part")
+
+    # "wb" = write binary : on ecrit les octets recus tels quels, sans
+    # reencodage. Le bloc `with` referme le fichier meme en cas d'erreur.
+    with open(temporaire, "wb") as fichier:
+        for morceau in response.iter_content(chunk_size=8192):
+            fichier.write(morceau)
+
+    temporaire.replace(destination)
+
+    taille_mo = destination.stat().st_size / 1_000_000
+    print(f"[+] {destination.name} ecrit ({taille_mo:.1f} Mo)")
+    return destination
 
 
 def main() -> None:
@@ -105,8 +112,10 @@ def main() -> None:
     locaux portent ainsi des noms lisibles, independants de la facon dont le
     ministere nomme ses jeux de donnees.
     """
-    # TODO : boucler sur DATASETS et appeler download_dataset pour chacun
-    ...
+    for cle, dataset_id in DATASETS.items():
+        download_dataset(dataset_id, DATA_RAW / f"{cle}.csv")
+
+    print(f"\n{len(DATASETS)} jeux de donnees disponibles dans {DATA_RAW}")
 
 
 if __name__ == "__main__":

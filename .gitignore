@@ -16,12 +16,18 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
+# Notes personnelles : espace de brouillon, pas un livrable.
+NOTES.md
+
 # Jupyter
 .ipynb_checkpoints/
 
 # Systeme
 Thumbs.db
 desktop.ini
+
+# Fichiers temporaires Microsoft Office
+~$*
 
 # NB : outputs/figures/ est VOLONTAIREMENT versionne.
 # Les figures sont affichees dans le README sur GitHub : elles font partie du livrable.
