@@ -1,0 +1,11 @@
+# Normalisation des fins de ligne.
+# Git stocke tout en LF dans le depot ; Windows recoit du CRLF dans le dossier
+# de travail. Rend le depot identique quel que soit le systeme du contributeur.
+* text=auto eol=lf
+
+# Fichiers a ne jamais convertir (binaires).
+*.png binary
+*.jpg binary
+*.gpkg binary
+*.parquet binary
+*.xlsx binary

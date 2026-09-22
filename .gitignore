@@ -1,0 +1,27 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Donnees : on versionne la recette (les scripts), pas les ingredients.
+# data/raw est reconstructible a l'identique via `uv run python -m src.download`.
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Systeme
+Thumbs.db
+desktop.ini
+
+# NB : outputs/figures/ est VOLONTAIREMENT versionne.
+# Les figures sont affichees dans le README sur GitHub : elles font partie du livrable.
