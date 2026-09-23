@@ -65,18 +65,93 @@ celui de son collège de secteur. Une école socialement favorisée peut être c
 REP parce qu'elle alimente un collège défavorisé : ce n'est pas une anomalie de
 ciblage, c'est la conception du dispositif.
 
-Les données confirment cette organisation de deux façons : **aucun lycée** ne porte
-de label (0 sur 5 600), et l'on compte **environ six écoles labellisées par collège
-labellisé** (6 552 pour 1 104), soit l'ordre de grandeur d'un secteur de recrutement.
-Le lien école → collège n'étant pas présent dans les fichiers utilisés, cette
-structure est cohérente avec les données sans être démontrée par elles ; la liste
-officielle des réseaux serait nécessaire pour la confirmer.
+Ce mécanisme est **établi par le producteur de la politique**, et non déduit des
+données : le ministère indique que « les écoles maternelles et élémentaires sont
+classées en fonction du collège de secteur ». Les données le confirment de deux
+façons : **aucun lycée** ne porte de label (0 sur 5 600), et l'on compte **environ
+six écoles labellisées par collège labellisé** (6 552 pour 1 104), soit l'ordre de
+grandeur d'un secteur de recrutement.
 
 Cette organisation n'altère toutefois pas la lisibilité des résultats : l'écart
 d'IPS entre établissements classés et non classés est de même ampleur pour les
 écoles (−22 points en REP, −31 en REP+) que pour les collèges (−23 et −35). Le
 classement des écoles suit donc leur propre réalité sociale presque aussi
 étroitement que celui des collèges.
+
+---
+
+## Comment le classement en éducation prioritaire est construit
+
+Ce travail confronte l'IPS au classement REP/REP+. Encore faut-il savoir comment ce
+classement a été établi — c'est la condition pour interpréter correctement les
+écarts. Source : Cour des comptes, *L'éducation prioritaire, une politique publique
+à repenser*, 2025.
+
+### La procédure de 2015, en trois temps
+
+**1. Un indice social unique**, construit par la DEPP **au niveau du collège**. Il
+agrège quatre taux :
+
+| Variable |
+|---|
+| Élèves appartenant aux catégories sociales défavorisées |
+| Élèves boursiers (taux 3) |
+| Élèves résidant dans ou à moins de **300 mètres** d'une ZUS, devenue QPV |
+| Élèves en retard à l'entrée en classe de sixième |
+
+L'agrégation ne se fait pas par moyenne pondérée : l'indice est « construit au
+travers d'une **régression économétrique**, c'est-à-dire d'une analyse des
+corrélations entre les facteurs mentionnés ». Les poids sont estimés, non choisis.
+
+*À noter : le revenu médian du secteur a été testé et écarté, au motif qu'« intégrant
+tous les foyers fiscaux d'un quartier, dont les retraités et les personnes sans
+enfants, il ne constitue pas une photographie de la population scolaire ».*
+
+**2. Un dialogue local** conduit par les recteurs d'octobre à décembre 2014, la liste
+finale étant arrêtée par le ministre.
+
+**3. Les écoles classées par héritage.** « L'absence de base de données concernant
+les écoles ne permettant pas de construire un indice qui leur est propre, le choix a
+donc été fait de labelliser les écoles selon une logique de réseau. » Ce n'est donc
+pas un choix pédagogique mais une **contrainte de données** — et l'on notera que
+l'IPS des écoles, mobilisé ici, n'a été publié qu'en 2022, sept ans après la carte.
+
+**Résultat :** 1 093 réseaux — 362 collèges et 2 459 écoles en REP+, 731 collèges et
+4 136 écoles en REP.
+
+### Cinq limites du dispositif de classement
+
+**1. L'indice n'a pas été appliqué.** C'est le point le plus important pour ce
+travail. « La carte théorique correspondant à ces critères nécessitait **350 réseaux
+entrants et 350 réseaux sortants**. Or les contextes locaux n'ont permis de procéder
+qu'à **195 sorties et 206 entrées** » — soit environ 57 % des mouvements prescrits.
+Le périmètre devait rester constant, autour de 500 000 collégiens : chaque entrée
+exigeait une sortie, et retirer un label s'est révélé politiquement très difficile.
+Une mesure de compensation a même dû être créée — maintien des indemnités ZEP
+pendant trois ans et bonification du barème de mutation.
+
+**Conséquence directe : une partie des divergences mesurées ici ne provient pas de
+l'IPS, mais du fait que la carte s'écarte de son propre indice social.**
+
+**2. Les écoles ne sont pas évaluées pour elles-mêmes.** D'où deux désajustements
+symétriques nommés par la Cour : les **« écoles orphelines »**, non classées « alors
+même que la réalité sociologique de leur public le justifierait », et les **« écoles
+embarquées »**, classées alors que leur public est plus favorisé.
+
+**3. La carte est figée depuis dix ans.** Elle « devait être réactualisée tous les
+quatre ans. Or l'entreprise, délicate, n'a pas été reconduite depuis dix ans ».
+
+**4. Le label est binaire.** L'allocation de moyens étant conditionnée à la
+labellisation, le mécanisme « apparaît comme binaire et ne permet d'offrir une réelle
+progressivité dans les ressources ». Les effets de seuil sont forts.
+
+**5. L'indice n'est pas reproductible.** Ni la spécification de la régression, ni les
+coefficients, ni la valeur du seuil séparant REP+ de REP ne sont publics. L'instrument
+qui a déterminé le classement de 1 093 réseaux ne peut pas être recalculé à partir
+des sources ouvertes.
+
+Et une critique de fond, posée par le SGMAP avant même la réforme : **« est-ce qu'une
+politique est encore prioritaire quand elle concerne 20 % d'une population ? »**
 
 ---
 
@@ -201,6 +276,21 @@ Les 36 738 établissements retenus disposent tous de coordonnées géographiques
 
 ### Contrôles effectués
 
+**Conformité des labels à la carte officielle.** Les statuts REP et REP+ de
+l'annuaire sont confrontés aux effectifs publiés par le ministère pour la rentrée
+2023 :
+
+| | Carte officielle | Annuaire (données utilisées) |
+|---|---:|---:|
+| Collèges REP | 731 | 732 |
+| Collèges REP+ | 362 | 372 |
+| Écoles REP | 4 136 | 4 093 |
+| **Écoles REP+** | **2 459** | **2 459** |
+
+Les écoles REP+ concordent exactement ; les autres écarts vont de un à dix
+établissements, imputables à la différence de millésime. Les labels de l'annuaire
+reproduisent donc fidèlement la carte ministérielle.
+
 **Doublons de l'annuaire.** 75 UAI y figurent en double. Avant d'en conserver
 arbitrairement la première occurrence, on vérifie que les lignes concernées ne se
 contredisent pas : **aucune divergence** sur les coordonnées ni sur le statut
@@ -306,6 +396,23 @@ dispositif.
 **Les divergences entre classement administratif et réalité sociale se concentrent
 donc au niveau des écoles, et découlent d'un trait de conception du dispositif plutôt
 que d'erreurs de classement individuelles.**
+
+#### Validation externe
+
+Ces 620 écoles correspondent à ce que la Cour des comptes nomme les **« écoles
+orphelines »**. Un chiffrage indépendant existe : la mission *Territoires et
+réussites* recensait en 2019, « en retenant un IPS équivalent ou inférieur à 78
+(soit la médiane des écoles de l'éducation prioritaire REP+ et REP), **471 écoles
+scolarisant 55 126 élèves** non labellisées éducation prioritaire ».
+
+Deux méthodes distinctes — seuil absolu de 78 en 2019, décile national en 2024-2025 —
+aboutissent au même ordre de grandeur. Le phénomène mesuré ici n'est donc pas un
+artefact du critère retenu.
+
+La mission notait par ailleurs que parmi ces écoles, « la majorité est en commune
+urbaine, principalement en QPV mais 20 % appartiennent à l'espace rural,
+principalement en rural éloigné » et « 20 % de ces écoles sont situées dans les
+départements d'outre-mer ».
 
 ### 3. L'outre-mer cumule un désavantage massif et une meilleure couverture
 
@@ -433,22 +540,33 @@ l'éducation prioritaire a été refondue en 2015 ; les IPS mobilisés datent de
 classement autant qu'une inadéquation d'origine. Distinguer les deux supposerait de
 croiser une série temporelle d'IPS avec l'historique des révisions de la carte.
 
-**Les critères réels du classement ne sont pas mobilisés.** Le classement en REP et
-REP+ repose sur un indice social composite propre, non sur l'IPS. Ce travail
-confronte deux instruments de mesure ; il ne reconstitue pas la décision
-administrative et ne peut donc pas conclure qu'un établissement est « mal classé ».
+**Les critères réels du classement ne sont pas mobilisés, et ne peuvent pas l'être.**
+Le classement repose sur un indice social composite construit par régression au
+niveau du collège, dont ni la spécification ni les coefficients ni le seuil ne sont
+publics. Ce travail confronte donc deux instruments de mesure ; il ne reconstitue pas
+la décision administrative et ne peut à aucun moment conclure qu'un établissement est
+« mal classé ».
 
-**L'explication par les réseaux reste une interprétation.** Le lien entre une école
-et son collège de secteur n'est présent dans aucun des fichiers utilisés. La
-cohérence du rapport observé — six écoles classées par collège classé — appuie cette
-lecture sans la démontrer.
+**Une part des divergences est imputable à la carte, non à la mesure.** La carte de
+2015 s'écarte substantiellement de son propre indice social : 206 entrées et
+195 sorties réalisées pour 350 et 350 prescrites. Une fraction des écarts observés
+ici reflète donc des arbitrages locaux de 2014, et non une inadéquation entre l'IPS
+et les critères officiels. Faute d'accès à la carte théorique, cette fraction n'est
+pas quantifiable.
+
+**Le lien école → collège de secteur n'est pas dans les données.** Le mécanisme
+d'héritage du label est établi par le ministère, mais les fichiers mobilisés ici ne
+permettent pas de rattacher une école donnée à son collège. Il est donc impossible de
+distinguer une école orpheline d'une école dont le collège de secteur est
+effectivement peu défavorisé.
 
 ---
 
 ## Prolongements possibles
 
-- Croiser avec la liste officielle des réseaux d'éducation prioritaire pour vérifier
-  directement le mécanisme d'héritage du label entre collège et écoles.
+- Reconstituer le rattachement école → collège de secteur, seule voie pour
+  distinguer les véritables « écoles orphelines » des écoles dont le collège de
+  secteur est effectivement peu défavorisé.
 - Mobiliser `donnees-ips-ecoles`, qui couvre neuf rentrées, en traitant explicitement
   la rupture méthodologique de 2022, afin d'examiner si les divergences se creusent.
 - Croiser avec les données de revenu médian communal de l'Insee (Filosofi) pour
@@ -465,6 +583,15 @@ lecture sans la démontrer.
 - [IPS des collèges](https://data.education.gouv.fr/explore/dataset/fr-en-ips-colleges-ap2023/) — DEPP
 - [Annuaire de l'éducation](https://data.education.gouv.fr/explore/dataset/fr-en-annuaire-education/) — ministère chargé de l'Éducation nationale
 - Contours départementaux : [cartiflette](https://github.com/InseeFrLab/cartiflette), laboratoire d'innovation de l'Insee, d'après IGN ADMIN EXPRESS
+
+**Construction et critique du classement REP / REP+**
+
+- [L'éducation prioritaire, une politique publique à repenser](https://www.ccomptes.fr/fr/publications/leducation-prioritaire-une-politique-publique-repenser) — Cour des comptes, 2025. Texte intégral en [annexe du rapport sénatorial n° 575](https://www.senat.fr/rap/r24-575/r24-575-annexe.pdf) : construction de l'indice social (p. 24), rattachement des écoles et écoles orphelines (p. 57-59)
+- [Refondation de l'éducation prioritaire](https://www.education.gouv.fr/bo/14/Hebdo23/MENE1412775C.htm) — circulaire du 4 juin 2014
+- [Critères de classement des écoles en réseau d'éducation prioritaire](https://www.senat.fr/questions/base/2025/qSEQ251106739.html) — question au Sénat et réponse ministérielle, 2025
+- [Révision des zonages des réseaux d'éducation prioritaire](https://www.senat.fr/questions/base/2022/qSEQ221103796.html) — réponse ministérielle, avril 2023 : la carte n'a pas été révisée depuis 2015
+- [L'éducation prioritaire](https://www.education.gouv.fr/l-education-prioritaire-3140) — ministère chargé de l'Éducation nationale : 1 093 réseaux à la rentrée 2023
+- France Stratégie, *Écoles primaires : mieux adapter les moyens aux territoires*, note d'analyse n° 76, avril 2019
 
 **Méthodologie de l'IPS**
 
