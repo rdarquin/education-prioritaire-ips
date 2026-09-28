@@ -229,6 +229,7 @@ uv run python -m src.preparation
 uv run python -m src.analyse
 uv run python -m src.cartographie
 uv run python -m src.score_ecart
+uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
 ```
 
@@ -243,6 +244,7 @@ uv run python -m src.ecarts_extremes
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | les deux cartes |
 | `src/score_ecart.py` | score d'écart d'IPS par établissement, aux seuils national et académique |
+| `src/distribution_ecart.py` | forme de la distribution de l'écart, aux deux seuils |
 | `src/ecarts_extremes.py` | les écarts d'au moins 10 points, des deux côtés, par académie et par département |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
@@ -505,6 +507,36 @@ recalculée à chaque exécution et interrompt le programme si elle est violée.
 des écarts non nuls est de 3,2 points — à peine au-dessus du seuil de 3 points en
 deçà duquel la DEPP recommande de ne rien interpréter. Rapporté au nombre de places,
 l'écart total vaut 2,01 points d'IPS par collège classé.
+
+### La forme de la distribution
+
+![Distribution de l'écart d'IPS au seuil budgétaire](outputs/figures/distribution_ecart.png)
+
+La variable est à **inflation de zéros**, ce qui impose deux précautions de tracé.
+La barre du zéro est tronquée et son effectif annoté, faute de quoi elle écraserait
+tout le reste ; et les classes sont calées pour que zéro tombe au *centre* d'une
+barre, sans quoi les conformes se répartiraient sur deux barres voisines et la masse
+centrale paraîtrait deux fois plus petite qu'elle n'est.
+
+**L'asymétrie ne porte pas sur les effectifs mais sur les queues.** Les deux côtés
+comptent presque le même nombre d'établissements — 249 oublis contre 250
+sur-inclusions — mais ils ne se répartissent pas de la même façon. Les oublis
+s'entassent près de zéro : 135 des 249 restent sous 3 points. Les sur-inclusions
+peuplent la queue : 141 des 250 la dépassent. Visuellement, la barre la plus haute est
+orange, juste à droite de zéro, mais c'est le bleu qui s'étire jusqu'à −32 quand
+l'orange s'arrête à +18. Le dispositif se trompe aussi souvent dans les deux sens,
+mais il se trompe plus fort lorsqu'il classe.
+
+Les écoles ont une distribution nettement plus étalée : médiane des écarts non nuls à
+5,3 points contre 3,2, centile 99 à 31,3 contre 20,2. C'est cohérent avec le mécanisme
+de labellisation par réseau, qui rattache une école sans regarder son propre IPS.
+
+Le trait noir donne la même distribution lorsque le seuil est recalculé académie par
+académie. **Le resserrement porte sur la queue, non sur le centre** : la part de
+conformes ne gagne que 1,4 point pour les collèges (90,6 → 92,0 %), mais le centile 99
+tombe de 20,2 à 17,1, et de 31,3 à 23,0 pour les écoles, soit −27 %. Autrement dit,
+changer d'étalon élimine les cas spectaculaires sans rien changer au désaccord de
+fond.
 
 ### Les 48 cas au-delà de 10 points
 
