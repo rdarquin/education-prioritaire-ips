@@ -109,7 +109,7 @@ uv run python -m src.download
 uv run python -m src.preparation
 uv run python -m src.analyse
 uv run python -m src.score_ecart
-uv run python -m src.distribution_ecart
+uv run python -m src.distribution_ips
 uv run python -m src.ecarts_extremes
 ```
 
@@ -124,7 +124,7 @@ uv run python -m src.ecarts_extremes
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | fond de carte partagé : contours, DROM rapprochés, annotations |
 | `src/score_ecart.py` | score d'écart d'IPS par collège, aux seuils national et académique |
-| `src/distribution_ecart.py` | forme de la distribution de l'écart, aux deux seuils |
+| `src/distribution_ips.py` | distribution des IPS et position des seuils, national et académiques |
 | `src/ecarts_extremes.py` | les écarts d'au moins 10 points, des deux côtés, par académie et par département |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
@@ -188,7 +188,7 @@ Ces deux cas sont de sens opposé : **oubli** (sous le seuil, non classé) et
 
 ### La distribution de l'IPS
 
-![Distribution de l'écart d'IPS au seuil budgétaire](outputs/figures/distribution_ecart.png)
+![Distribution des IPS des collèges publics et position des seuils](outputs/figures/distribution_ips.png)
 
 **Commentaire à ajouter moi meme**
 
