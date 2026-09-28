@@ -228,6 +228,8 @@ uv run python -m src.download
 uv run python -m src.preparation
 uv run python -m src.analyse
 uv run python -m src.cartographie
+uv run python -m src.score_ecart
+uv run python -m src.sur_inclusions
 ```
 
 `uv sync` installe Python 3.12 et les dépendances aux versions exactes figées dans
@@ -240,6 +242,10 @@ uv run python -m src.cartographie
 | `src/preparation.py` | nettoie, joint, contrôle les biais d'exclusion |
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | les deux cartes |
+| `src/score_ecart.py` | score d'écart d'IPS par établissement, aux seuils national et académique |
+| `src/sur_inclusions.py` | les sur-inclusions les plus fortes, par académie et par département |
+| `src/cartographie_score.py` | cartes départementales des écarts significatifs |
+| `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
 ---
 
@@ -464,6 +470,84 @@ permettent donc aucune mesure de distance ou de surface. Le repositionnement des
 points est vérifié par contrôle d'appartenance — chacun des 653 établissements doit
 tomber à l'intérieur de son département sur le fond transformé, faute de quoi la
 figure n'est pas produite.*
+
+---
+
+## Le score d'écart d'IPS
+
+L'analyse de couverture repose sur un seuil conventionnel — les 10 % les plus
+défavorisés. Une seconde mesure s'en dispense en prenant pour référence
+**l'enveloppe réellement allouée**.
+
+### Le principe
+
+Le dispositif classe 1 094 collèges publics sur 5 325. Une règle qui classerait le
+même *nombre* d'établissements, mais d'après leur seul IPS, retiendrait les 1 094
+IPS les plus faibles — c'est-à-dire tous ceux situés sous **88,80 points**, l'IPS du
+collège qui ferme l'enveloppe. Ce seuil n'est donc pas choisi : il découle de la
+décision budgétaire elle-même.
+
+Chaque établissement reçoit un score :
+
+- **0** s'il est classé et sous le seuil, ou non classé et au-dessus — conforme ;
+- **son écart d'IPS au seuil** dans les deux cas restants.
+
+Ces deux cas sont de sens opposé : **oubli** (sous le seuil, non classé) et
+**sur-inclusion** (au-dessus du seuil, classé). Les confondre ferait disparaître
+l'information la plus intéressante, ils sont donc distingués partout.
+
+Les deux types d'erreur étant en nombre égal par construction, le seuil s'élimine de
+la somme des scores, qui vaut alors exactement l'écart de masse d'IPS entre
+l'allocation réelle et l'allocation optimale à enveloppe égale. Cette identité est
+recalculée à chaque exécution et interrompt le programme si elle est violée.
+
+**Résultat d'ensemble : 90,6 % des collèges publics ont un score nul**, et la médiane
+des écarts non nuls est de 3,2 points — à peine au-dessus du seuil de 3 points en
+deçà duquel la DEPP recommande de ne rien interpréter. Rapporté au nombre de places,
+l'écart total vaut 2,01 points d'IPS par collège classé.
+
+### Les 32 cas au-delà de 10 points
+
+Restent les cas qu'aucune imprécision de mesure ne peut expliquer : 32 collèges
+classés REP ou REP+ dont l'IPS dépasse le seuil de plus de 10 points, soit plus de
+trois fois le seuil d'interprétabilité.
+
+![Collèges sur-inclus par académie et par ampleur de l'écart](outputs/figures/sur_inclusions_academies.png)
+
+Treize académies sur trente sont concernées ; les dix-sept autres n'ont aucun cas.
+**Paris en concentre 11 à lui seul**, dont 4 des 6 écarts supérieurs à 20 points.
+Bordeaux suit avec 5, dont les 2 autres écarts extrêmes. À elles deux, ces académies
+détiennent la totalité de la tranche haute.
+
+![Nombre de collèges sur-inclus par département](outputs/figures/sur_inclusions_departements.png)
+
+Seize départements sont concernés : Paris (11), la Gironde (3), puis la Corse-du-Sud,
+la Dordogne, la Seine-Saint-Denis et la Nièvre (2 chacun). Le fait notable est
+l'**absence de motif géographique** : en dehors de deux foyers urbains, les cas sont
+isolés et dispersés, sans continuité territoriale, et aucun DROM n'est concerné. Il
+ne s'agit donc pas d'un phénomène régional mais d'une accumulation de situations
+locales.
+
+### Pourquoi Paris n'est pas comparable aux autres
+
+La répartition des réseaux par académie est arrêtée au niveau national ; le recteur
+désigne ensuite les établissements dans l'enveloppe reçue. Or **Paris ne compte que
+6 collèges sous le seuil national pour 30 places à pourvoir**. Le minimum de
+sur-inclusions arithmétiquement possible y est donc de 24 — exactement le nombre
+observé. Aucune carte parisienne à 30 collèges ne ferait mieux au regard d'un étalon
+national.
+
+Recalculé à l'intérieur de Paris, à enveloppe parisienne inchangée, le nombre de
+sur-inclusions tombe de 24 à 8. `src/score_ecart.py` produit cette variante
+académique en parallèle de la variante nationale, dans les mêmes fichiers.
+
+Bordeaux, en revanche, résiste au changement d'étalon : l'IPS médian des collèges de
+Gironde est de 107,4, et le collège le plus sur-inclus de France y atteint 121,0. Son
+écart ne s'explique pas par un effet de repère.
+
+*Cette mesure compare la carte réelle à un classement par IPS. L'IPS n'étant pas le
+critère officiel, un écart signale un désaccord entre deux instruments — et non une
+erreur administrative.*
 
 ## Limites
 
