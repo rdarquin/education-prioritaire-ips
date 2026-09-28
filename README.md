@@ -522,6 +522,22 @@ conformes ne gagne que 1,4 point (90,6 → 92,0 %), mais le centile 99 tombe de 
 17,1. Autrement dit, changer d'étalon élimine les cas spectaculaires sans rien
 changer au désaccord de fond.
 
+Le tableau placé sous le graphe donne la répartition chiffrée. Ses plages sont
+**symétriques autour de zéro**, de sorte qu'une asymétrie entre les deux moitiés soit
+une propriété des données et non du découpage.
+
+| Seuil | < −10 | −10 à −3 | **−3 à +3** | +3 à +10 | > +10 |
+|---|---:|---:|---:|---:|---:|
+| National | 0,5 % | 2,1 % | **95,2 %** | 1,8 % | 0,3 % |
+| Académique | 0,4 % | 2,0 % | **96,1 %** | 1,5 % | 0,1 % |
+
+Trois lectures. **Plus de 95 % des collèges tiennent dans ± 3 points**, c'est-à-dire
+dans la marge que la DEPP juge ininterprétable. **Les deux moitiés ne s'équilibrent
+pas** : 2,6 % des collèges sont du côté de la sur-inclusion contre 2,1 % du côté de
+l'oubli, et l'écart se creuse aux extrêmes — 0,5 % au-delà de −10 contre 0,3 % au-delà
+de +10. **Le seuil académique agit surtout sur la tranche extrême des oublis**, qui
+passe de 0,3 % à 0,1 %, soit d'environ seize collèges à cinq.
+
 ### Les 48 cas au-delà de 10 points
 
 Restent les cas qu'aucune imprécision de mesure ne peut expliquer : **48 collèges**
