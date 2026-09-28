@@ -1,15 +1,15 @@
 """Cartographie departementale des ecarts SIGNIFICATIFS au seuil budgetaire.
 
-Produit, pour chaque niveau, une figure a deux cartes :
+Produit une figure a deux cartes :
 
-    FREQUENCE - part des etablissements du departement dont le score d'ecart
-                depasse 3 points d'IPS. Echelle sequentielle : une frequence
-                n'a pas de polarite, seulement une intensite.
+    FREQUENCE - part des colleges du departement dont le score d'ecart depasse
+                3 points d'IPS. Echelle sequentielle : une frequence n'a pas
+                de polarite, seulement une intensite.
 
-    NATURE    - parmi ces seuls etablissements, moyenne du score SIGNE
-                (positif pour un oubli, negatif pour une sur-inclusion).
-                Echelle divergente centree sur zero, avec un gris neutre au
-                milieu : ici le signe est l'information.
+    NATURE    - parmi ces seuls colleges, moyenne du score SIGNE (positif pour
+                un oubli, negatif pour une sur-inclusion). Echelle divergente
+                centree sur zero, avec un gris neutre au milieu : ici le signe
+                est l'information.
 
 POURQUOI 3 POINTS
 
@@ -19,9 +19,9 @@ Filtrer a 3 points evite donc de compter comme "ecart" ce qui n'est que du
 bruit de mesure. C'est le seul seuil du calcul, et il ne vient pas d'un choix
 statistique mais du producteur de la donnee.
 
-Consequence a garder en tete pour lire la seconde carte : chaque etablissement
-retenu contribue pour au moins 3 points en valeur absolue. Un departement dont
-tous les ecarts significatifs sont des oublis a donc une moyenne >= +3, et un
+Consequence a garder en tete pour lire la seconde carte : chaque college retenu
+contribue pour au moins 3 points en valeur absolue. Un departement dont tous
+les ecarts significatifs sont des oublis a donc une moyenne >= +3, et un
 departement qui ne sur-inclut que, une moyenne <= -3. Une valeur proche de
 zero ne signifie pas "peu d'ecart" mais "les deux types se compensent".
 
@@ -40,11 +40,11 @@ teinte indistincte. Les bornes de classes sont donc prises sur les quantiles
 de la distribution observee. Elles sont affichees sur la barre de couleur :
 le lecteur voit l'echelle qu'on lui applique.
 
-Le fond de carte, le repositionnement des DROM et leur annotation sont repris
-de `cartographie.py` : meme convention, donc meme avertissement. CES CARTES NE
+Le fond de carte, le repositionnement des DROM et leur annotation viennent de
+`cartographie.py` : meme convention, donc meme avertissement. CES CARTES NE
 PERMETTENT AUCUNE MESURE DE DISTANCE NI DE SURFACE.
 
-Prerequis : `uv run python -m src.score_ecart` (produit score_ecart_ips.csv)
+Prerequis : `uv run python -m src.score_ecart`
 
 Lancement (depuis la racine du projet) :
     uv run python -m src.cartographie_score
@@ -68,22 +68,18 @@ DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 # difference n'est pas lisible : on ne la compte pas comme un ecart.
 SEUIL_SIGNIFICATIF = 3.0
 
-# Effectif minimal d'etablissements pour qu'une part departementale ait un
-# sens : en dessous, un seul etablissement deplacerait la part de plusieurs
-# points. Les departements concernes sont laisses en gris.
-MIN_ETABLISSEMENTS = {"college": 20, "ecole": 50}
+# IPS du college qui ferme l'enveloppe nationale, affiche dans la note.
+SEUIL_NATIONAL = "88,80"
 
-# Effectif minimal d'etablissements SIGNIFICATIFS pour que leur moyenne ait un
-# sens. Avec un ou deux etablissements, la seconde carte afficherait le score
-# d'un etablissement isole en le faisant passer pour une caracteristique du
-# departement.
+# Effectif minimal de colleges pour qu'une part departementale ait un sens :
+# en dessous, un seul college deplacerait la part de plusieurs points. Les
+# departements concernes sont laisses en gris.
+MIN_ETABLISSEMENTS = 20
+
+# Effectif minimal de colleges SIGNIFICATIFS pour que leur moyenne ait un
+# sens. Avec un ou deux, la seconde carte afficherait le score d'un college
+# isole en le faisant passer pour une caracteristique du departement.
 MIN_SIGNIFICATIFS = 3
-
-# niveau interne, radical ASCII pour les fichiers, pluriel affiche, titre
-NIVEAUX = [
-    ("college", "colleges", "collèges", "Collèges publics"),
-    ("ecole", "ecoles", "écoles", "Écoles publiques"),
-]
 
 GRIS_ABSENT = "#e3e3e3"
 N_CLASSES = 6
@@ -96,15 +92,15 @@ DIVERGENTE = LinearSegmentedColormap.from_list(
     "solde", ["#2a78d6", "#9ec4ee", "#d8d7d0", "#f2a888", "#eb6834"])
 
 
-def agreger(scores: pd.DataFrame, niveau: str) -> pd.DataFrame:
+def agreger(scores: pd.DataFrame) -> pd.DataFrame:
     """Resume le score individuel a l'echelle departementale.
 
     Returns:
-        Un tableau par departement. Les colonnes `score_moyen` et `solde`
-        sont conservees pour `nuage_score.py` ; les cartes utilisent
+        Un tableau par departement. Les colonnes `score_moyen` et `solde` sont
+        conservees pour `nuage_score.py` ; les cartes utilisent
         `part_significatifs` et `score_moyen_significatifs`.
     """
-    sous = scores[scores["niveau"] == niveau].copy()
+    sous = scores.copy()
 
     # Score signe : positif pour un oubli, negatif pour une sur-inclusion.
     # C'est ce signe qui rend la seconde carte lisible.
@@ -122,7 +118,7 @@ def agreger(scores: pd.DataFrame, niveau: str) -> pd.DataFrame:
         sous["type_ecart"] == "sur-inclus", 0.0)
 
     dep = sous.groupby(["code_departement", "departement"]).agg(
-        etablissements=("uai", "size"),
+        colleges=("uai", "size"),
         classes=("ep", lambda s: (s != "hors EP").sum()),
         en_ecart=("score_ecart_ips", lambda s: (s > 0).sum()),
         significatifs=("est_significatif", "sum"),
@@ -133,14 +129,14 @@ def agreger(scores: pd.DataFrame, niveau: str) -> pd.DataFrame:
     ).reset_index()
 
     # Les deux variables cartographiees.
-    dep["part_significatifs"] = 100 * dep["significatifs"] / dep["etablissements"]
+    dep["part_significatifs"] = 100 * dep["significatifs"] / dep["colleges"]
     dep["score_moyen_significatifs"] = (dep["somme_signee_significative"]
                                         / dep["significatifs"].replace(0, np.nan))
 
     # Conservees pour le nuage de points, qui croise ces deux-la.
-    dep["score_moyen"] = dep["score_total"] / dep["etablissements"]
+    dep["score_moyen"] = dep["score_total"] / dep["colleges"]
     dep["solde"] = ((dep["masse_oublis"] - dep["masse_sur_inclusions"])
-                    / dep["etablissements"])
+                    / dep["colleges"])
     return dep
 
 
@@ -185,13 +181,11 @@ def barre(fig, position, cmap, norme, bornes, etiquette: str) -> None:
     cax.set_xlabel(etiquette, fontsize=8, labelpad=4)
 
 
-def figure_niveau(dep: pd.DataFrame, contours, niveau: str, radical: str,
-                  pluriel: str, titre_champ: str) -> None:
-    """Produit la figure a deux cartes pour un niveau."""
+def figure(dep: pd.DataFrame, contours) -> None:
+    """Produit la figure a deux cartes."""
     gdf = contours.join(dep.set_index("code_departement"), how="left")
-    mini = MIN_ETABLISSEMENTS[niveau]
 
-    assez_grand = gdf["etablissements"].fillna(0) >= mini
+    assez_grand = gdf["colleges"].fillna(0) >= MIN_ETABLISSEMENTS
     assez_significatifs = gdf["significatifs"].fillna(0) >= MIN_SIGNIFICATIFS
     fiable_nature = assez_grand & assez_significatifs
 
@@ -212,7 +206,7 @@ def figure_niveau(dep: pd.DataFrame, contours, niveau: str, radical: str,
     axes[0].set_title("Fréquence des écarts significatifs", fontsize=11.5,
                       fontweight="bold", loc="left")
     barre(fig, [0.07, 0.185, 0.36, 0.014], cmap, norme, bornes,
-          f"Part des {pluriel} dont l'écart dépasse "
+          f"Part des collèges dont l'écart dépasse "
           f"{SEUIL_SIGNIFICATIF:.0f} points d'IPS (%)")
 
     # ---- nature : echelle divergente symetrique --------------------------
@@ -229,27 +223,27 @@ def figure_niveau(dep: pd.DataFrame, contours, niveau: str, radical: str,
           "← sur-inclusion     score signé moyen, en points d'IPS     oubli →")
 
     fig.suptitle(
-        f"Éducation prioritaire : écarts significatifs à une allocation fondée "
-        f"sur l'IPS\n{titre_champ}, rentrée 2024-2025",
+        "Éducation prioritaire : écarts significatifs à une allocation fondée "
+        "sur l'IPS\nCollèges publics, rentrée 2024-2025",
         fontsize=13.5, fontweight="bold", x=0.02, ha="left", y=0.975)
 
     fig.text(0.02, 0.128,
-             "Le score d'un établissement vaut 0 s'il est classé et sous le seuil "
+             "Le score d'un collège vaut 0 s'il est classé et sous le seuil "
              "budgétaire, ou non classé et au-dessus ; sinon il vaut son écart d'IPS à "
              "ce seuil. Ne sont retenus ici que les\n"
              f"écarts supérieurs à {SEUIL_SIGNIFICATIF:.0f} points, la DEPP "
              "recommandant de ne pas interpréter des différences d'IPS inférieures. "
              "À gauche, leur fréquence ; à droite, leur nature.\n"
-             "Chaque établissement retenu pèse au moins 3 points en valeur absolue : "
+             "Chaque collège retenu pèse au moins 3 points en valeur absolue : "
              "une moyenne proche de zéro signifie donc que les deux types se "
              "compensent, non qu'il y a peu d'écart.\n"
              "Les classes sont des quantiles de la distribution départementale, et non "
              "une échelle linéaire : quelques départements extrêmes écraseraient "
              "sinon tous les autres.\n"
-             f"En gris : {n_masques} départements comptant moins de {mini} "
-             f"{pluriel} publics ou sans donnée ; sur la carte de droite, "
-             f"{n_sans_nature} de plus comptant moins de {MIN_SIGNIFICATIFS} "
-             "établissements significatifs.\n"
+             f"En gris : {n_masques} départements comptant moins de "
+             f"{MIN_ETABLISSEMENTS} collèges publics ou sans donnée ; sur la carte de "
+             f"droite, {n_sans_nature} de plus comptant moins de "
+             f"{MIN_SIGNIFICATIFS} collèges significatifs.\n"
              "L'IPS n'est pas le critère officiel de classement : un écart mesure un "
              "désaccord entre deux instruments, pas une erreur administrative.\n"
              "Sources : DEPP (IPS), annuaire de l'éducation, contours Insee/cartiflette. "
@@ -257,7 +251,7 @@ def figure_niveau(dep: pd.DataFrame, contours, niveau: str, radical: str,
              fontsize=7.5, va="top", color="#52514e")
 
     FIGURES.mkdir(parents=True, exist_ok=True)
-    chemin = FIGURES / f"ecarts_significatifs_{radical}.png"
+    chemin = FIGURES / "ecarts_significatifs.png"
     fig.savefig(chemin, dpi=200, facecolor="white")
     plt.close(fig)
     print(f"  [+] {chemin.name}")
@@ -276,36 +270,35 @@ def main() -> None:
     contours = charger_contours("FRANCE_ENTIERE_DROM_RAPPROCHES")
     print(f"  {len(contours)} departements")
 
-    print("\nFigures :")
-    for niveau, radical, pluriel, titre_champ in NIVEAUX:
-        dep = agreger(scores, niveau)
-        figure_niveau(dep, contours, niveau, radical, pluriel, titre_champ)
+    dep = agreger(scores)
 
-        dep.round(3).to_csv(
-            DOSSIER_TABLES / f"score_ecart_par_departement_{radical}.csv",
-            index=False, encoding="utf-8")
+    print("\nFigure :")
+    figure(dep, contours)
 
-        mini = MIN_ETABLISSEMENTS[niveau]
-        assez = dep[dep["etablissements"] >= mini]
-        colonnes = ["code_departement", "departement", "etablissements",
-                    "significatifs", "part_significatifs",
-                    "score_moyen_significatifs"]
+    dep.round(3).to_csv(DOSSIER_TABLES / "score_ecart_par_departement.csv",
+                        index=False, encoding="utf-8")
 
-        total_sig = int(dep["significatifs"].sum())
-        print(f"\n--- {niveau.upper()}S : {total_sig} etablissements a ecart "
-              f"significatif sur {len(scores[scores.niveau == niveau])} "
-              f"({100 * total_sig / len(scores[scores.niveau == niveau]):.1f} %) ---")
-        print(f"  {len(assez)} departements retenus (>= {mini} etablissements)")
-        print("\n  part la plus elevee :")
-        print(assez.nlargest(8, "part_significatifs")[colonnes].round(2)
-              .to_string(index=False))
-        nature = assez[assez["significatifs"] >= MIN_SIGNIFICATIFS]
-        print("\n  ecarts significatifs les plus orientes vers l'OUBLI :")
-        print(nature.nlargest(5, "score_moyen_significatifs")[colonnes].round(2)
-              .to_string(index=False))
-        print("\n  ecarts significatifs les plus orientes vers la SUR-INCLUSION :")
-        print(nature.nsmallest(5, "score_moyen_significatifs")[colonnes].round(2)
-              .to_string(index=False))
+    assez = dep[dep["colleges"] >= MIN_ETABLISSEMENTS]
+    colonnes = ["code_departement", "departement", "colleges", "significatifs",
+                "part_significatifs", "score_moyen_significatifs"]
+
+    total_sig = int(dep["significatifs"].sum())
+    print(f"\n{total_sig} colleges a ecart significatif sur {len(scores)} "
+          f"({100 * total_sig / len(scores):.1f} %)")
+    print(f"{len(assez)} departements retenus (>= {MIN_ETABLISSEMENTS} colleges)")
+    print("\n  part la plus elevee :")
+    print(assez.nlargest(8, "part_significatifs")[colonnes].round(2)
+          .to_string(index=False))
+
+    nature = assez[assez["significatifs"] >= MIN_SIGNIFICATIFS]
+    print("\n  ecarts les plus orientes vers l'OUBLI :")
+    print(nature.nlargest(5, "score_moyen_significatifs")[colonnes].round(2)
+          .to_string(index=False))
+    print("\n  ecarts les plus orientes vers la SUR-INCLUSION :")
+    print(nature.nsmallest(5, "score_moyen_significatifs")[colonnes].round(2)
+          .to_string(index=False))
+
+    print(f"\n[+] score_ecart_par_departement.csv ({len(dep)} departements)")
 
 
 if __name__ == "__main__":

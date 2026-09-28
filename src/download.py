@@ -102,13 +102,13 @@ def download_dataset(dataset_id: str, destination: Path, force: bool = False) ->
 
 
 def main() -> None:
-    """Telecharge les trois jeux de donnees du projet.
+    """Telecharge les jeux de donnees du projet.
 
     Parcourt DATASETS (defini dans config.py) et telecharge chaque jeu dans
-    DATA_RAW sous le nom `<cle>.csv` — par exemple `ips_ecoles.csv`.
+    DATA_RAW sous le nom `<cle>.csv` — par exemple `ips_colleges.csv`.
 
-    Note : la cle du dictionnaire (`ips_ecoles`) sert de nom de fichier, pas
-    l'identifiant Opendatasoft (`fr-en-ips-ecoles-ap2022`). Tes fichiers
+    Note : la cle du dictionnaire (`ips_colleges`) sert de nom de fichier, pas
+    l'identifiant Opendatasoft (`fr-en-ips-colleges-ap2023`). Tes fichiers
     locaux portent ainsi des noms lisibles, independants de la facon dont le
     ministere nomme ses jeux de donnees.
     """

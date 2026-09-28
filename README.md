@@ -1,25 +1,34 @@
-# Éducation prioritaire et réalité sociale des établissements
+# Éducation prioritaire et réalité sociale des collèges
 
 > Analyse territoriale — données DEPP et annuaire de l'éducation, rentrée 2024-2025.
 
 **Le classement en éducation prioritaire coïncide-t-il avec la réalité sociale des
-établissements, mesurée par l'indice de position sociale (IPS) ? Et là où les deux
+collèges, mesurée par l'indice de position sociale (IPS) ? Et là où les deux
 divergent, que nous apprennent ces exceptions ?**
 
 Ce travail confronte deux mesures du même phénomène : d'un côté le classement
-administratif en REP et REP+, de l'autre l'IPS publié par la DEPP pour chaque école
-et chaque collège. Il quantifie leur recouvrement, identifie les établissements
-socialement défavorisés situés hors du dispositif, et cartographie leur répartition
+administratif en REP et REP+, de l'autre l'IPS publié par la DEPP pour chaque
+collège. Il quantifie leur recouvrement, identifie les collèges socialement
+défavorisés situés hors du dispositif, et cartographie leur répartition
 territoriale.
 
-**Résultat principal.** Sur 30 889 établissements publics, **653 figurent parmi les
-10 % socialement les plus défavorisés sans être classés en éducation prioritaire**.
-Le ciblage est globalement cohérent — 30 points d'IPS séparent les établissements
-classés REP+ des établissements non classés — mais il est nettement plus lâche pour
-les écoles (**75,8 %** des plus défavorisées sont couvertes) que pour les collèges
-(**93,8 %**). Cet écart découle de l'architecture du dispositif, organisé en réseaux
-bâtis autour d'un collège : le classement d'un collège en difficulté est direct,
-celui d'une école dépend du collège vers lequel ses élèves sont orientés.
+**Le champ est celui des collèges**, et c'est un choix de fond : l'indice social qui
+a servi à bâtir la carte de 2015 a été construit *au niveau du collège*, les écoles
+n'ayant été labellisées qu'en héritant du label de leur collège de secteur, faute de
+base de données les concernant. Le collège est donc l'unité à laquelle la décision a
+réellement été prise — et la seule où la confronter à l'IPS ait un sens direct.
+
+**Résultat principal.** Sur 5 325 collèges publics, **33 seulement figurent parmi les
+10 % socialement les plus défavorisés sans être classés**, soit une couverture de
+**93,8 %**. Une seconde mesure, affranchie de tout seuil conventionnel, confirme ce
+constat et le précise : rapportée à l'enveloppe réellement allouée, **90,6 % des
+collèges sont exactement à leur place**, et l'écart total vaut 2,01 points d'IPS par
+collège classé — en deçà du seuil de 3 points que la DEPP juge interprétable.
+
+Restent les exceptions, peu nombreuses mais nettes : **48 collèges s'écartent de plus
+de 10 points**, dont 32 classés malgré un IPS élevé et 16 non classés malgré un IPS
+très bas. Paris en concentre à lui seul onze, pour une raison qui tient moins à la
+décision du recteur qu'à l'arithmétique de l'enveloppe.
 
 ---
 
@@ -28,26 +37,26 @@ celui d'une école dépend du collège vers lequel ses élèves sont orientés.
 Un premier examen des données écarte d'emblée la question naïve — « le ciblage
 est-il correct ? ». Rentrée 2024-2025 :
 
-| Statut | Écoles | IPS moyen | Collèges | IPS moyen |
-|---|---:|---:|---:|---:|
-| REP+ | 1 300 | **77,2** | 362 | **74,6** |
-| REP | 2 317 | **85,7** | 732 | **86,0** |
-| Hors dispositif | 26 147 | **107,9** | 5 880 | **109,2** |
+| Statut | Collèges | IPS moyen |
+|---|---:|---:|
+| REP+ | 362 | **74,6** |
+| REP | 732 | **86,0** |
+| Hors dispositif (public) | 4 231 | **104,9** |
+| *Privé sous contrat* | *1 649* | *120,3* |
 
-L'écart entre REP+ et hors dispositif atteint **30 points pour les écoles et 35 pour
-les collèges**, quand la DEPP recommande de ne pas interpréter des différences de
-3 points ou moins. Le ciblage est donc globalement très cohérent avec la réalité
-sociale mesurée par l'IPS.
+L'écart entre REP+ et collèges publics hors dispositif atteint **30 points d'IPS**,
+quand la DEPP recommande de ne pas interpréter des différences de 3 points ou moins.
+Le ciblage est donc globalement très cohérent avec la réalité sociale mesurée par
+l'IPS.
 
 L'intérêt de l'analyse se déplace par conséquent vers les **divergences** : quels
-établissements socialement défavorisés restent hors dispositif, où se situent-ils,
-et ces exceptions dessinent-elles une géographie particulière — rural, villes
-moyennes, outre-mer ?
+collèges socialement défavorisés restent hors dispositif, quels collèges favorisés
+sont classés, où se situent-ils, et ces exceptions dessinent-elles une géographie
+particulière ?
 
-*Chiffres produits par `src/preparation.py` sur 36 738 établissements retenus
-(29 764 écoles, 6 974 collèges) après exclusion des établissements non appariés à
-l'annuaire et de ceux dont l'IPS n'est pas publié. Voir « Méthode » pour le détail
-des exclusions.*
+*Chiffres produits par `src/preparation.py` sur 6 974 collèges retenus après
+exclusion de ceux non appariés à l'annuaire et de ceux dont l'IPS n'est pas publié.
+Voir « Méthode » pour le détail des exclusions.*
 
 ---
 
@@ -58,12 +67,11 @@ sur d'autres critères sociaux. Un écart entre les deux ne constitue donc pas u
 erreur de l'administration — c'est la confrontation de deux instruments de mesure,
 dont l'analyse des divergences est précisément l'objet de ce travail.
 
-**2. L'éducation prioritaire est organisée en réseaux, non en établissements
-isolés.** Un réseau associe un collège aux écoles dont les élèves y sont orientés,
-et c'est l'ensemble du réseau qui est classé. Le label d'une école découle donc de
-celui de son collège de secteur. Une école socialement favorisée peut être classée
-REP parce qu'elle alimente un collège défavorisé : ce n'est pas une anomalie de
-ciblage, c'est la conception du dispositif.
+**2. Le collège est l'unité de décision du dispositif.** L'éducation prioritaire est
+organisée en réseaux : un réseau associe un collège aux écoles dont les élèves y
+sont orientés, et c'est l'ensemble du réseau qui est classé. Le label d'une école
+découle donc de celui de son collège de secteur, et non de sa propre situation
+sociale.
 
 Ce mécanisme est **établi par le producteur de la politique**, et non déduit des
 données : le ministère indique que « les écoles maternelles et élémentaires sont
@@ -72,11 +80,16 @@ façons : **aucun lycée** ne porte de label (0 sur 5 600), et l'on compte **env
 six écoles labellisées par collège labellisé** (6 552 pour 1 104), soit l'ordre de
 grandeur d'un secteur de recrutement.
 
-Cette organisation n'altère toutefois pas la lisibilité des résultats : l'écart
-d'IPS entre établissements classés et non classés est de même ampleur pour les
-écoles (−22 points en REP, −31 en REP+) que pour les collèges (−23 et −35). Le
-classement des écoles suit donc leur propre réalité sociale presque aussi
-étroitement que celui des collèges.
+**C'est la raison pour laquelle ce travail se restreint aux collèges.** Confronter
+l'IPS d'une école à son label reviendrait à juger une décision qui n'a pas été prise
+à son niveau. Au collège, en revanche, la comparaison porte sur l'établissement même
+que l'administration a évalué.
+
+**3. Le seuil de 10 % ne mesure pas ce qu'il semble mesurer.** Le dispositif classe
+20,5 % des collèges publics ; le décile le plus défavorisé n'en contient donc que la
+moitié. Le « ciblage » calculé à ce seuil est par conséquent **plafonné à 48,7 %
+quelle que soit la qualité du classement**. C'est ce qui a motivé la mesure sans
+seuil présentée plus bas, fondée sur l'enveloppe réellement allouée.
 
 ---
 
@@ -113,11 +126,11 @@ finale étant arrêtée par le ministre.
 **3. Les écoles classées par héritage.** « L'absence de base de données concernant
 les écoles ne permettant pas de construire un indice qui leur est propre, le choix a
 donc été fait de labelliser les écoles selon une logique de réseau. » Ce n'est donc
-pas un choix pédagogique mais une **contrainte de données** — et l'on notera que
-l'IPS des écoles, mobilisé ici, n'a été publié qu'en 2022, sept ans après la carte.
+pas un choix pédagogique mais une **contrainte de données**. C'est aussi la
+justification directe du champ retenu ici : l'indice social n'a jamais existé qu'au
+niveau du collège.
 
-**Résultat :** 1 093 réseaux — 362 collèges et 2 459 écoles en REP+, 731 collèges et
-4 136 écoles en REP.
+**Résultat :** 1 093 réseaux, soit **362 collèges en REP+ et 731 en REP**.
 
 ### Cinq limites du dispositif de classement
 
@@ -133,10 +146,9 @@ pendant trois ans et bonification du barème de mutation.
 **Conséquence directe : une partie des divergences mesurées ici ne provient pas de
 l'IPS, mais du fait que la carte s'écarte de son propre indice social.**
 
-**2. Les écoles ne sont pas évaluées pour elles-mêmes.** D'où deux désajustements
-symétriques nommés par la Cour : les **« écoles orphelines »**, non classées « alors
-même que la réalité sociologique de leur public le justifierait », et les **« écoles
-embarquées »**, classées alors que leur public est plus favorisé.
+**2. Le premier degré n'est pas évalué pour lui-même.** Le classement y étant
+hérité, la Cour nomme deux désajustements symétriques qu'il produit. Ils sortent du
+champ de ce travail, mais ils rappellent que la décision se prend au collège.
 
 **3. La carte est figée depuis dix ans.** Elle « devait être réactualisée tous les
 quatre ans. Or l'entreprise, délicate, n'a pas été reconduite depuis dix ans ».
@@ -197,7 +209,6 @@ l'ouverture des statistiques administratives.
 
 | Jeu de données | Source | Lignes | Rentrées couvertes |
 |---|---|---|---|
-| IPS des écoles | data.education.gouv.fr — `fr-en-ips-ecoles-ap2022` | 97 080 | 2022-23, 2023-24, 2024-25 |
 | IPS des collèges | data.education.gouv.fr — `fr-en-ips-colleges-ap2023` | 21 061 | 2023-24, 2024-25, 2025-26 |
 | Annuaire de l'éducation | data.education.gouv.fr — `fr-en-annuaire-education` | 68 581 | millésime courant |
 
@@ -205,13 +216,13 @@ l'ouverture des statistiques administratives.
 
 **Deux points méthodologiques structurants :**
 
-1. **Les fichiers IPS sont des panels, pas des instantanés.** Malgré leurs
-   identifiants (`ap2022`, `ap2023`), chacun couvre trois rentrées scolaires. La
-   rentrée la plus récente commune aux deux niveaux est **2024-2025** : c'est la
-   référence retenue pour toute comparaison écoles / collèges.
+1. **Le fichier IPS est un panel, pas un instantané.** Malgré son identifiant
+   (`ap2023`), il couvre trois rentrées scolaires. Sans filtre, chaque collège serait
+   compté trois fois. La rentrée retenue est **2024-2025**, la plus récente pour
+   laquelle l'annuaire et le fichier IPS concordent.
 
-2. **La jointure avec l'annuaire se fait sur le code UAI**, nommé `uai` dans les
-   fichiers IPS et `identifiant_de_l_etablissement` dans l'annuaire. L'annuaire
+2. **La jointure avec l'annuaire se fait sur le code UAI**, nommé `uai` dans le
+   fichier IPS et `identifiant_de_l_etablissement` dans l'annuaire. L'annuaire
    apporte les coordonnées géographiques (`latitude`, `longitude`), indispensables à
    la cartographie, ainsi que l'appartenance à l'**éducation prioritaire** (REP/REP+)
    — variable de croisement à fort intérêt analytique.
@@ -238,11 +249,11 @@ uv run python -m src.ecarts_extremes
 
 | Module | Rôle |
 |---|---|
-| `src/download.py` | télécharge les trois jeux de données bruts |
+| `src/download.py` | télécharge les deux jeux de données bruts |
 | `src/preparation.py` | nettoie, joint, contrôle les biais d'exclusion |
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | fond de carte partagé : contours, DROM rapprochés, annotations |
-| `src/score_ecart.py` | score d'écart d'IPS par établissement, aux seuils national et académique |
+| `src/score_ecart.py` | score d'écart d'IPS par collège, aux seuils national et académique |
 | `src/distribution_ecart.py` | forme de la distribution de l'écart, aux deux seuils |
 | `src/ecarts_extremes.py` | les écarts d'au moins 10 points, des deux côtés, par académie et par département |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
@@ -268,18 +279,20 @@ outputs/tables/    tableaux de résultats
 
 ### Construction du fichier d'analyse
 
-`src/preparation.py` part des trois fichiers bruts et produit
-`data/processed/etablissements_2024_2025.csv` : une ligne par établissement.
+`src/preparation.py` part des deux fichiers bruts et produit
+`data/processed/colleges_2024_2025.csv` : une ligne par collège.
 
 | Étape | Effet |
 |---|---:|
-| Fichiers IPS bruts (3 rentrées) | 118 141 lignes |
-| Filtrage sur la rentrée 2024-2025 | 39 481 |
-| Exclusion des non-appariés à l'annuaire | −307 |
-| Exclusion des IPS non publiés | −2 505 |
-| **Retenus** (chevauchement de 69 lignes) | **36 738** |
+| Fichier IPS brut (3 rentrées) | 21 061 lignes |
+| Filtrage sur la rentrée 2024-2025 | 6 987 |
+| Exclusion des non-appariés à l'annuaire | −12 |
+| Exclusion des IPS non publiés | −1 |
+| **Retenus** | **6 974** |
 
-Les 36 738 établissements retenus disposent tous de coordonnées géographiques.
+Les 6 974 collèges retenus disposent tous de coordonnées géographiques. Le taux de
+perte est ici de **0,2 %** : la confrontation IPS / annuaire est quasi intégrale au
+niveau du collège.
 
 ### Contrôles effectués
 
@@ -287,16 +300,21 @@ Les 36 738 établissements retenus disposent tous de coordonnées géographiques
 l'annuaire sont confrontés aux effectifs publiés par le ministère pour la rentrée
 2023 :
 
-| | Carte officielle | Annuaire (données utilisées) |
-|---|---:|---:|
-| Collèges REP | 731 | 732 |
-| Collèges REP+ | 362 | 372 |
-| Écoles REP | 4 136 | 4 093 |
-| **Écoles REP+** | **2 459** | **2 459** |
+| | Carte officielle | Annuaire | Fichier d'analyse |
+|---|---:|---:|---:|
+| Collèges REP | 731 | 732 | 732 |
+| Collèges REP+ | 362 | 372 | 362 |
 
-Les écoles REP+ concordent exactement ; les autres écarts vont de un à dix
-établissements, imputables à la différence de millésime. Les labels de l'annuaire
-reproduisent donc fidèlement la carte ministérielle.
+L'écart d'une unité en REP et de dix en REP+ entre la carte officielle et l'annuaire
+est imputable à la différence de millésime : les labels de l'annuaire reproduisent
+fidèlement la carte ministérielle.
+
+La dernière colonne compte **dix collèges REP+ de moins que l'annuaire**, et
+l'origine a été tracée : ils ne sont pas écartés par les exclusions ci-dessus, ils
+n'ont tout simplement **aucune ligne dans le fichier IPS pour 2024-2025** — huit y
+figurent pour d'autres rentrées, deux n'y apparaissent jamais. La perte porte donc
+sur 2,7 % des REP+, ce qui atténue très légèrement les écarts mesurés dans la suite :
+les collèges concernés sont, par construction, parmi les plus défavorisés.
 
 **Doublons de l'annuaire.** 75 UAI y figurent en double. Avant d'en conserver
 arbitrairement la première occurrence, on vérifie que les lignes concernées ne se
@@ -305,39 +323,37 @@ d'éducation prioritaire. Le choix est donc sans conséquence. La jointure est p
 ailleurs déclarée `one_to_one`, ce qui la fait échouer bruyamment plutôt que de
 dupliquer silencieusement des lignes.
 
-**Biais d'exclusion des IPS non publiés.** 2 505 établissements (6,3 %), presque
-exclusivement des écoles, n'ont pas d'IPS publié — la DEPP ne diffuse l'indice que
-pour les écoles ayant compté au moins 25 élèves de CM2 sur cinq ans. Ces petites
-écoles, majoritairement rurales, ne sont **que 4,3 % à relever de l'éducation
-prioritaire, contre 12,3 % de l'ensemble**. Leur exclusion retire donc surtout des
-établissements hors dispositif : elle est peu susceptible de fausser la
-comparaison, sans être pour autant neutre (environ 110 établissements classés sont
-perdus).
+**Biais d'exclusion des IPS non publiés.** Un seul collège (0,01 %) figure dans le
+fichier IPS sans valeur diffusée. Le motif d'exclusion qui pesait lourd sur le
+premier degré — la DEPP ne diffuse l'indice qu'au-delà de 25 élèves sur cinq ans —
+est ici pratiquement sans effet : les collèges sont trop grands pour être concernés.
 
-**Établissements non appariés.** 307 établissements (0,8 %) sont absents de
-l'annuaire, dont 295 écoles, concentrées dans le Pas-de-Calais, la Seine-Maritime
-et la Charente-Maritime. Vraisemblablement fermés ou regroupés entre la collecte de
+**Collèges non appariés.** 12 collèges (0,2 %) sont absents de l'annuaire, dispersés
+sur huit départements. Vraisemblablement fermés ou regroupés entre la collecte de
 l'IPS et la mise à jour de l'annuaire.
 
 ### Mesures retenues
 
 L'analyse reprend le cadre de l'évaluation d'un dispositif de ciblage. Deux
-variables binaires sont croisées : être parmi les X % d'établissements au plus faible
-IPS (la mesure), et être classé REP ou REP+ (la décision administrative). Deux taux
-en découlent :
+variables binaires sont croisées : être parmi les X % de collèges au plus faible IPS
+(la mesure), et être classé REP ou REP+ (la décision administrative). Deux taux en
+découlent :
 
-- **Couverture** — parmi les établissements les plus défavorisés, quelle part est
-  classée ? Répond à : *le dispositif laisse-t-il des établissements de côté ?*
-- **Ciblage** — parmi les établissements classés, quelle part figure parmi les plus
-  défavorisés ? Répond à : *le dispositif classe-t-il des établissements qui ne sont
-  pas les plus en difficulté ?*
+- **Couverture** — parmi les collèges les plus défavorisés, quelle part est
+  classée ? Répond à : *le dispositif laisse-t-il des collèges de côté ?*
+- **Ciblage** — parmi les collèges classés, quelle part figure parmi les plus
+  défavorisés ? Répond à : *le dispositif classe-t-il des collèges qui ne sont pas
+  les plus en difficulté ?*
 
 Les deux ne disent pas la même chose et évoluent en sens contraire : élargir le
-dispositif améliore la couverture et dégrade le ciblage. Le rang social est calculé
-séparément pour les écoles et les collèges, dont les distributions d'IPS diffèrent.
+dispositif améliore la couverture et dégrade le ciblage.
 
 Le seuil de 10 % étant conventionnel, une **analyse de sensibilité** l'accompagne
-systématiquement (5 %, 10 %, 15 %, 20 %, 25 %).
+systématiquement (5 %, 10 %, 15 %, 20 %, 25 %). Le module affiche en outre, à chaque
+seuil, le **plafond atteignable par le ciblage** — le décile ne peut pas contenir
+plus de collèges qu'il n'en compte. Sans ce repère, le ciblage se lit comme une
+mesure de qualité alors qu'il dépend d'abord de la taille de l'enveloppe. C'est ce
+défaut que corrige le score d'écart présenté plus bas.
 
 ### Choix cartographiques
 
@@ -370,96 +386,76 @@ Trois partis sont pris systématiquement :
 
 ## Résultats
 
-Champ : **30 889 établissements publics** (25 564 écoles, 5 325 collèges), rentrée
-2024-2025. Le privé sous contrat est écarté du calcul de couverture : **aucun de ses
-5 849 établissements n'est classé REP ou REP+**, y compris les 26 qui figurent parmi
-les 10 % les plus défavorisés. L'éducation prioritaire est un dispositif de
-l'enseignement public ; les y inclure dégraderait mécaniquement le taux de couverture
-sans rien mesurer.
+Champ : **5 325 collèges publics**, rentrée 2024-2025. Le privé sous contrat est
+écarté du calcul de couverture : **aucun de ses 1 649 collèges n'est classé REP ou
+REP+**, y compris les 12 qui figurent parmi les 10 % les plus défavorisés.
+L'éducation prioritaire est un dispositif de l'enseignement public ; les y inclure
+dégraderait mécaniquement le taux de couverture sans rien mesurer.
 
 ### 1. Le dispositif vise le cinquième inférieur, pas le dixième
 
-En retenant comme référence les 10 % d'établissements au plus faible IPS, seuls 46 %
-des collèges classés et 54 % des écoles classées en font partie. Mais le taux monte à
-76 % et 78 % lorsqu'on élargit la référence aux 20 % les plus défavorisés.
+L'éducation prioritaire classe **1 094 collèges publics sur 5 325, soit 20,5 %**. Le
+décile le plus défavorisé n'en contient que 533 : il est donc arithmétiquement
+impossible d'y loger tous les classés.
 
-| Seuil retenu | Couverture collèges | Couverture écoles | Ciblage collèges | Ciblage écoles |
-|---|---:|---:|---:|---:|
-| 5 % | 98,5 % | 85,9 % | 23,9 % | 30,2 % |
-| 10 % | 93,8 % | 75,8 % | 45,7 % | 53,8 % |
-| 15 % | 87,3 % | 65,0 % | 63,5 % | 68,9 % |
-| 20 % | 78,3 % | 55,3 % | 75,9 % | 78,2 % |
-| 25 % | 69,3 % | 47,5 % | 84,4 % | 84,3 % |
+| Seuil retenu | Effectif du seuil | Couverture | Ciblage | Plafond du ciblage | Non couverts |
+|---|---:|---:|---:|---:|---:|
+| 5 % | 265 | 98,5 % | 23,9 % | *24,2 %* | 4 |
+| 10 % | 533 | 93,8 % | 45,7 % | *48,7 %* | 33 |
+| 15 % | 796 | 87,3 % | 63,5 % | *72,8 %* | 101 |
+| 20 % | 1 060 | 78,3 % | 75,9 % | *96,9 %* | 230 |
+| 25 % | 1 332 | 69,3 % | 84,4 % | *(sans objet)* | 409 |
 
-L'apparent défaut de ciblage au seuil de 10 % n'en est donc pas un : il traduit le
-fait que le périmètre de l'éducation prioritaire correspond approximativement au
-cinquième le plus défavorisé des établissements publics.
+La colonne « plafond » est décisive. Au seuil de 10 %, le ciblage ne **peut pas**
+dépasser 48,7 % ; les 45,7 % observés en représentent 94 %. Lire ce chiffre comme
+« moins de la moitié des collèges classés sont vraiment défavorisés » serait un
+contresens : il traduit le fait que le périmètre de l'éducation prioritaire
+correspond approximativement au **cinquième** le plus défavorisé, pas au dixième.
 
-### 2. Les collèges sont presque tous couverts, les écoles beaucoup moins
+### 2. Les collèges défavorisés sont presque tous couverts
 
-C'est le résultat le plus net.
+| | Effectif |
+|---|---:|
+| Collèges publics parmi les 10 % au plus faible IPS | 533 |
+| dont classés REP ou REP+ | 500 |
+| **dont non classés** | **33** |
+| Couverture | **93,8 %** |
 
-| | Défavorisés (10 % plus bas) | Non classés | Couverture |
-|---|---:|---:|---:|
-| Collèges | 533 | **33** | **93,8 %** |
-| Écoles | 2 567 | **620** | **75,8 %** |
+Trente-trois collèges sur 5 325 — 0,6 % du champ. Au niveau où la décision se prend
+réellement, la carte de l'éducation prioritaire laisse donc très peu d'établissements
+de côté. C'est un constat favorable au dispositif, et il faut le dire comme tel.
 
-Seuls 33 collèges parmi les plus défavorisés échappent au dispositif, contre 620
-écoles. Cet écart est cohérent avec l'architecture de la politique : l'éducation
-prioritaire est constituée de réseaux bâtis autour d'un collège, auxquels les écoles
-sont rattachées. Le classement d'un collège en difficulté est direct ; celui d'une
-école dépend du collège vers lequel ses élèves sont orientés. Une école très
-défavorisée dont le collège de secteur ne l'est pas suffisamment reste hors
-dispositif.
-
-**Les divergences entre classement administratif et réalité sociale se concentrent
-donc au niveau des écoles, et découlent d'un trait de conception du dispositif plutôt
-que d'erreurs de classement individuelles.**
-
-#### Validation externe
-
-Ces 620 écoles correspondent à ce que la Cour des comptes nomme les **« écoles
-orphelines »**. Un chiffrage indépendant existe : la mission *Territoires et
-réussites* recensait en 2019, « en retenant un IPS équivalent ou inférieur à 78
-(soit la médiane des écoles de l'éducation prioritaire REP+ et REP), **471 écoles
-scolarisant 55 126 élèves** non labellisées éducation prioritaire ».
-
-Deux méthodes distinctes — seuil absolu de 78 en 2019, décile national en 2024-2025 —
-aboutissent au même ordre de grandeur. Le phénomène mesuré ici n'est donc pas un
-artefact du critère retenu.
-
-La mission notait par ailleurs que parmi ces écoles, « la majorité est en commune
-urbaine, principalement en QPV mais 20 % appartiennent à l'espace rural,
-principalement en rural éloigné » et « 20 % de ces écoles sont situées dans les
-départements d'outre-mer ».
+La question intéressante n'est dès lors plus la couverture, mais l'**autre côté** de
+l'écart : les collèges classés dont l'IPS ne le justifie pas. Le seuil de 10 % ne
+permet pas de l'examiner — c'est l'objet du score d'écart présenté plus bas.
 
 ### 3. L'outre-mer cumule un désavantage massif et une meilleure couverture
 
-| | Établissements | Part dans les 10 % les plus défavorisés | Couverture |
+| | Collèges | Part dans les 10 % les plus défavorisés | Couverture |
 |---|---:|---:|---:|
-| Métropole | 29 809 | 8,8 % | 77,0 % |
-| Outre-mer | 1 080 | **43,2 %** | **89,7 %** |
+| Métropole | 5 103 | 8,7 % | 93,3 % |
+| Outre-mer | 222 | **39,6 %** | **96,6 %** |
 
-Près d'un établissement ultramarin sur deux figure parmi les 10 % les plus
-défavorisés de France, contre moins d'un sur dix en métropole. Ces territoires sont
-par ailleurs mieux couverts que la métropole.
+Quatre collèges ultramarins sur dix figurent parmi les 10 % les plus défavorisés de
+France, contre moins d'un sur douze en métropole. Ces territoires sont par ailleurs
+mieux couverts : trois collèges non couverts sur 88 défavorisés. La Guyane et Mayotte
+atteignent la couverture intégrale.
 
-### 4. La couverture varie fortement entre départements, sans lien avec leur niveau social
+### 4. La variabilité départementale n'est pas mesurable sur ce champ
 
-Parmi les 42 départements comptant au moins 20 établissements défavorisés, la
-couverture s'échelonne de **45,8 %** (Saône-et-Loire) à la couverture intégrale.
+Le champ restreint aux collèges rend ce type d'analyse **impossible à conduire
+sérieusement**, et il vaut mieux le dire que produire un chiffre fragile.
 
-**Une hypothèse a été testée puis écartée** : celle selon laquelle les poches de
-pauvreté isolées dans des départements globalement aisés seraient moins bien
-couvertes. La corrélation entre IPS médian départemental et taux de couverture est
-de **−0,08**, soit nulle, et la relation n'est pas monotone — ce sont les
-départements du tiers médian qui affichent la couverture la plus faible (77,4 %),
-devant le tiers le plus pauvre (81,7 %) et le tiers le plus aisé (84,9 %).
+Les 533 collèges défavorisés se répartissent sur 74 départements, mais **14
+seulement en comptent au moins dix**. La corrélation entre IPS médian départemental
+et taux de couverture oscille entre −0,19 et −0,44 selon le minimum d'effectif
+retenu, c'est-à-dire qu'elle est entièrement pilotée par une poignée de points. Aucune
+conclusion ne peut en être tirée.
 
-La variabilité départementale est donc réelle et forte, mais elle ne s'explique pas
-par la richesse du département. Elle appelle d'autres pistes : l'ancienneté de la
-carte de l'éducation prioritaire, dont la dernière révision d'ampleur remonte à
-2015, ou des différences de pratique entre académies.
+Avec 33 collèges non couverts au total, la couverture départementale n'a tout
+simplement pas assez de matière. **L'analyse territoriale de ce travail repose donc
+sur le score d'écart**, qui ne dépend d'aucun décile et attribue une valeur à chacun
+des 5 325 collèges.
 
 ---
 
@@ -506,25 +502,25 @@ tout le reste ; et les classes sont calées pour que zéro tombe au *centre* d'u
 barre, sans quoi les conformes se répartiraient sur deux barres voisines et la masse
 centrale paraîtrait deux fois plus petite qu'elle n'est.
 
-**L'asymétrie ne porte pas sur les effectifs mais sur les queues.** Les deux côtés
-comptent presque le même nombre d'établissements — 249 oublis contre 250
-sur-inclusions — mais ils ne se répartissent pas de la même façon. Les oublis
-s'entassent près de zéro : 135 des 249 restent sous 3 points. Les sur-inclusions
-peuplent la queue : 141 des 250 la dépassent. Visuellement, la barre la plus haute est
-orange, juste à droite de zéro, mais c'est le bleu qui s'étire jusqu'à −32 quand
-l'orange s'arrête à +18. Le dispositif se trompe aussi souvent dans les deux sens,
-mais il se trompe plus fort lorsqu'il classe.
+**L'écart, quand il existe, est le plus souvent minuscule.** La médiane des écarts
+non nuls est de **3,2 points**, soit à peine au-dessus du seuil que la DEPP juge
+interprétable. La moitié des collèges non conformes s'écartent donc d'une quantité
+que l'indicateur ne permet pas de lire.
 
-Les écoles ont une distribution nettement plus étalée : médiane des écarts non nuls à
-5,3 points contre 3,2, centile 99 à 31,3 contre 20,2. C'est cohérent avec le mécanisme
-de labellisation par réseau, qui rattache une école sans regarder son propre IPS.
+**L'asymétrie ne porte pas sur les effectifs mais sur les queues.** Les deux côtés
+comptent presque le même nombre de collèges — 249 oublis contre 250 sur-inclusions —
+mais ils ne se répartissent pas de la même façon. Les oublis s'entassent près de
+zéro : 135 des 249 restent sous 3 points. Les sur-inclusions peuplent la queue :
+141 des 250 la dépassent. Visuellement, la barre la plus haute est orange, juste à
+droite de zéro, mais c'est le bleu qui s'étire jusqu'à −32 quand l'orange s'arrête à
++18. Le dispositif se trompe aussi souvent dans les deux sens, mais il se trompe
+plus fort lorsqu'il classe.
 
 Le trait noir donne la même distribution lorsque le seuil est recalculé académie par
 académie. **Le resserrement porte sur la queue, non sur le centre** : la part de
-conformes ne gagne que 1,4 point pour les collèges (90,6 → 92,0 %), mais le centile 99
-tombe de 20,2 à 17,1, et de 31,3 à 23,0 pour les écoles, soit −27 %. Autrement dit,
-changer d'étalon élimine les cas spectaculaires sans rien changer au désaccord de
-fond.
+conformes ne gagne que 1,4 point (90,6 → 92,0 %), mais le centile 99 tombe de 20,2 à
+17,1. Autrement dit, changer d'étalon élimine les cas spectaculaires sans rien
+changer au désaccord de fond.
 
 ### Les 48 cas au-delà de 10 points
 
@@ -606,56 +602,53 @@ recommande de ne pas interpréter des différences de 3 points ou moins : les
 classements fins entre établissements ou entre départements proches n'ont pas de
 sens.
 
-**L'IPS des écoles est rétrospectif.** Il est calculé sur les élèves de CM2 dont les
-PCS sont connues à leur entrée en sixième, et correspond à la moyenne des anciens
-élèves sur cinq ans. Il décrit donc le public de l'école au cours du quinquennat
-écoulé, non celui qui y est actuellement scolarisé. Une école dont le recrutement
-social s'est récemment dégradé apparaît meilleure qu'elle ne l'est.
-
 **L'IPS ne dit rien des résultats scolaires.** Ce travail porte sur la composition
-sociale des établissements, jamais sur leur performance.
+sociale des collèges, jamais sur leur performance.
 
 ### Le champ retenu
 
-**2 743 établissements sont exclus** : 2 505 sans IPS publié (écoles de moins de
-25 élèves de CM2 sur cinq ans) et 307 absents de l'annuaire, dont 69 cumulent les
-deux motifs. Le biais a été mesuré —
-les exclus ne sont que 4,3 % à relever de l'éducation prioritaire contre 12,3 % de
-l'ensemble — mais il n'est pas nul : environ 110 établissements classés disparaissent
-de l'analyse.
+**Le premier degré est hors champ.** C'est un choix assumé, justifié plus haut : les
+écoles ont été labellisées par héritage du collège de secteur, sans indice propre.
+Ce travail ne dit donc rien des « écoles orphelines » ni des désajustements du
+premier degré, qui constituent pourtant une part importante du problème posé par la
+carte de l'éducation prioritaire.
 
-**Le privé sous contrat est écarté** du calcul de couverture, aucun de ses
-établissements n'étant classé. La question de la ségrégation entre secteurs public
-et privé, pourtant centrale dans le débat sur les inégalités scolaires, n'est donc
-pas traitée ici.
+**13 collèges sont exclus** : 12 absents de l'annuaire et 1 sans IPS publié, soit
+0,2 % du champ. Le biais est négligeable à cette échelle.
+
+**Dix collèges REP+ manquent au fichier IPS** pour la rentrée 2024-2025, soit 2,7 %
+des REP+. Ils ne sont pas écartés par le nettoyage : ils n'ont simplement pas de
+ligne cette année-là. Étant par construction parmi les plus défavorisés, leur absence
+atténue très légèrement les écarts mesurés.
+
+**Le privé sous contrat est écarté** du calcul de couverture, aucun de ses collèges
+n'étant classé. La question de la ségrégation entre secteurs public et privé,
+pourtant centrale dans le débat sur les inégalités scolaires, n'est donc pas traitée
+ici.
 
 **Les lycées sont hors champ**, l'éducation prioritaire s'arrêtant au collège.
 
-**Le fichier IPS des écoles porte la mention « n'est plus actualisé »** dans les
-métadonnées du ministère. Les résultats valent pour la rentrée 2024-2025 et ne
-pourront pas être prolongés à partir de cette source.
-
 ### Les choix de méthode
 
-**Aucune pondération par les effectifs d'élèves — c'est la limite principale.** Ni
-les fichiers IPS ni l'annuaire ne fournissent d'effectif. Une école de 30 élèves pèse
-donc autant qu'une école de 400 dans chaque taux calculé ici. Conséquence directe :
-les taux de couverture décrivent une part d'**établissements**, jamais une part
-d'**élèves**. Or une politique éducative vise des élèves. Le chiffre de 653
-établissements non couverts ne doit en aucun cas être converti en nombre d'enfants
-concernés.
+**Aucune pondération par les effectifs d'élèves — c'est la limite principale.** Ni le
+fichier IPS ni l'annuaire ne fournissent d'effectif. Un collège de 150 élèves pèse
+donc autant qu'un collège de 900 dans chaque taux calculé ici. Conséquence directe :
+tous les résultats décrivent une part de **collèges**, jamais une part d'**élèves**.
+Or une politique éducative vise des élèves. Ni les 33 collèges non couverts ni les
+48 écarts extrêmes ne doivent être convertis en nombre d'enfants concernés.
 
-**Le seuil de 10 % est conventionnel.** L'analyse de sensibilité montre que la
-hiérarchie écoles / collèges est stable de 5 % à 25 %, mais que le nombre absolu
-d'établissements non couverts varie de 184 à 3 775 selon le seuil retenu. Aucun
-chiffre absolu ne doit être cité sans son seuil.
+**Le seuil de 10 % est conventionnel**, et son ciblage est plafonné par la taille de
+l'enveloppe. Le nombre de collèges non couverts varie de 4 à 409 selon le seuil
+retenu : aucun chiffre absolu ne doit être cité sans lui. C'est précisément ce que
+le score d'écart évite, en déduisant son seuil de l'enveloppe observée.
 
 **Une seule rentrée est analysée.** Aucune évolution n'est mesurée.
 
-**Les taux départementaux reposent souvent sur de très petits effectifs.** 59
-départements sur 101 comptent moins de 20 établissements défavorisés et sont pour
-cette raison exclus de la carte. Pour ceux qui figurent, un écart de quelques
-établissements déplace le taux de plusieurs points.
+**L'analyse départementale de la couverture n'est pas conduite**, faute d'effectifs
+suffisants : 14 départements seulement comptent au moins dix collèges défavorisés.
+Les cartes de ce dépôt reposent sur le score d'écart, qui attribue une valeur à
+chaque collège et n'a donc pas cette fragilité — sous réserve du seuil d'effectif
+appliqué à chaque carte, rappelé dans sa note.
 
 ### Ce que ce travail ne dit pas
 
@@ -685,24 +678,26 @@ ici reflète donc des arbitrages locaux de 2014, et non une inadéquation entre 
 et les critères officiels. Faute d'accès à la carte théorique, cette fraction n'est
 pas quantifiable.
 
-**Le lien école → collège de secteur n'est pas dans les données.** Le mécanisme
-d'héritage du label est établi par le ministère, mais les fichiers mobilisés ici ne
-permettent pas de rattacher une école donnée à son collège. Il est donc impossible de
-distinguer une école orpheline d'une école dont le collège de secteur est
-effectivement peu défavorisé.
+**Le premier degré n'est pas traité.** Le label d'une école découlant de celui de
+son collège de secteur, la confronter à son propre IPS reviendrait à juger une
+décision prise ailleurs. Ce travail ne dit donc rien des désajustements du premier
+degré, qui pèsent pourtant lourd dans la critique de la carte.
 
 ---
 
 ## Prolongements possibles
 
-- Reconstituer le rattachement école → collège de secteur, seule voie pour
-  distinguer les véritables « écoles orphelines » des écoles dont le collège de
-  secteur est effectivement peu défavorisé.
-- Mobiliser `donnees-ips-ecoles`, qui couvre neuf rentrées, en traitant explicitement
-  la rupture méthodologique de 2022, afin d'examiner si les divergences se creusent.
+- Pondérer par les effectifs d'élèves, pour passer d'une part de collèges à une part
+  d'élèves — la limite principale de ce travail. Le jeu de données IPS ne fournit
+  pas l'effectif ; il faudrait le joindre depuis une autre source du ministère.
+- Mobiliser les trois rentrées du fichier IPS plutôt qu'une seule, afin d'examiner
+  si les écarts se creusent ou se résorbent.
 - Croiser avec les données de revenu médian communal de l'Insee (Filosofi) pour
   confronter l'IPS à une mesure indépendante du niveau de vie local.
-- Étendre l'analyse aux lycées, hors dispositif mais dotés d'un fichier IPS.
+- Corriger le recouvrement académique de la taille de l'enveloppe, dont il dépend
+  mécaniquement, avant d'en tirer un classement de qualité de la décision locale.
+- Étendre l'analyse au premier degré, en reconstituant d'abord le rattachement
+  école → collège de secteur, sans lequel la comparaison n'a pas de sens.
 
 ---
 
@@ -710,7 +705,6 @@ effectivement peu défavorisé.
 
 **Données**
 
-- [IPS des écoles](https://data.education.gouv.fr/explore/dataset/fr-en-ips-ecoles-ap2022/) — DEPP
 - [IPS des collèges](https://data.education.gouv.fr/explore/dataset/fr-en-ips-colleges-ap2023/) — DEPP
 - [Annuaire de l'éducation](https://data.education.gouv.fr/explore/dataset/fr-en-annuaire-education/) — ministère chargé de l'Éducation nationale
 - Contours départementaux : [cartiflette](https://github.com/InseeFrLab/cartiflette), laboratoire d'innovation de l'Insee, d'après IGN ADMIN EXPRESS
@@ -722,7 +716,6 @@ effectivement peu défavorisé.
 - [Critères de classement des écoles en réseau d'éducation prioritaire](https://www.senat.fr/questions/base/2025/qSEQ251106739.html) — question au Sénat et réponse ministérielle, 2025
 - [Révision des zonages des réseaux d'éducation prioritaire](https://www.senat.fr/questions/base/2022/qSEQ221103796.html) — réponse ministérielle, avril 2023 : la carte n'a pas été révisée depuis 2015
 - [L'éducation prioritaire](https://www.education.gouv.fr/l-education-prioritaire-3140) — ministère chargé de l'Éducation nationale : 1 093 réseaux à la rentrée 2023
-- France Stratégie, *Écoles primaires : mieux adapter les moyens aux territoires*, note d'analyse n° 76, avril 2019
 
 **Méthodologie de l'IPS**
 

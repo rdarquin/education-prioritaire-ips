@@ -24,15 +24,14 @@ FIGURES = PROJECT_ROOT / "outputs" / "figures"
 API_BASE = "https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets"
 
 # Identifiants des jeux de donnees (verifies le 2026-09-22).
-# ATTENTION : malgre leurs noms, ces fichiers contiennent PLUSIEURS rentrees.
-#   ips_ecoles   : 2022-2023, 2023-2024, 2024-2025   (~32 500 ecoles / an)
-#   ips_colleges : 2023-2024, 2024-2025, 2025-2026   (~7 000 colleges / an)
+# ATTENTION : malgre son nom, le fichier IPS contient PLUSIEURS rentrees —
+# 2023-2024, 2024-2025 et 2025-2026, soit environ 7 000 colleges par rentree.
+# Sans filtre, chaque college serait compte trois fois.
 DATASETS = {
-    "ips_ecoles": "fr-en-ips-ecoles-ap2022",
     "ips_colleges": "fr-en-ips-colleges-ap2023",
     "annuaire": "fr-en-annuaire-education",
 }
 
-# Rentree la plus recente presente dans LES DEUX fichiers IPS.
-# Toute comparaison ecoles / colleges doit se faire sur cette rentree.
+# Rentree analysee. Le choix se justifie dans le README : c'est la plus
+# recente pour laquelle l'annuaire et le fichier IPS concordent.
 RENTREE_REFERENCE = "2024-2025"

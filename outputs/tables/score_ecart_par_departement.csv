@@ -1,4 +1,4 @@
-code_departement,departement,etablissements,classes,en_ecart,significatifs,somme_signee_significative,score_total,masse_oublis,masse_sur_inclusions,part_significatifs,score_moyen_significatifs,score_moyen,solde
+code_departement,departement,colleges,classes,en_ecart,significatifs,somme_signee_significative,score_total,masse_oublis,masse_sur_inclusions,part_significatifs,score_moyen_significatifs,score_moyen,solde
 01,AIN,52,4,1,1,-9.5,9.5,0.0,9.5,1.923,-9.5,0.183,-0.183
 02,AISNE,57,15,11,6,24.4,40.4,35.2,5.2,10.526,4.067,0.709,0.526
 03,ALLIER,37,6,5,3,-8.3,20.1,3.3,16.8,8.108,-2.767,0.543,-0.365

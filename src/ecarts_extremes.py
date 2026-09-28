@@ -149,8 +149,7 @@ def charger(type_ecart: str) -> pd.DataFrame:
             f"{fichier.name} absent. Lance d'abord : uv run python -m src.score_ecart")
 
     df = pd.read_csv(fichier, dtype={"code_departement": str, "code_commune": str})
-    sous = df[(df["niveau"] == "college")
-              & (df["type_ecart"] == type_ecart)
+    sous = df[(df["type_ecart"] == type_ecart)
               & (df["score_ecart_ips"] >= ECART_MINIMAL)].copy()
 
     sous["plage"] = pd.cut(

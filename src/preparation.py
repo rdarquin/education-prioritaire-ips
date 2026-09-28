@@ -1,8 +1,7 @@
 """Nettoyage des donnees brutes et construction du fichier d'analyse.
 
-Produit `data/processed/etablissements_2024_2025.csv` : une ligne par
-etablissement, avec son IPS, son statut d'education prioritaire et ses
-coordonnees geographiques.
+Produit `data/processed/colleges_2024_2025.csv` : une ligne par college, avec
+son IPS, son statut d'education prioritaire et ses coordonnees geographiques.
 
 Le module affiche ses diagnostics au fur et a mesure. Ce n'est pas du
 bavardage : chaque chiffre imprime ici documente une decision de nettoyage,
@@ -12,13 +11,11 @@ Lancement (depuis la racine du projet) :
     uv run python -m src.preparation
 """
 
-from pathlib import Path
-
 import pandas as pd
 
 from src.config import DATA_PROCESSED, DATA_RAW, RENTREE_REFERENCE
 
-# Parametres de lecture communs aux trois fichiers.
+# Parametres de lecture communs aux deux fichiers.
 #   sep=";"                 : convention Opendatasoft
 #   encoding="utf-8-sig"    : neutralise le BOM en tete de fichier, sans quoi
 #                             la premiere colonne s'appellerait "﻿rentree_scolaire"
@@ -29,42 +26,26 @@ from src.config import DATA_PROCESSED, DATA_RAW, RENTREE_REFERENCE
 #                             reellement numeriques seront converties a la main.
 LECTURE_CSV = dict(sep=";", encoding="utf-8-sig", dtype=str)
 
-FICHIER_SORTIE = DATA_PROCESSED / "etablissements_2024_2025.csv"
+FICHIER_SORTIE = DATA_PROCESSED / "colleges_2024_2025.csv"
 
 
-def charger_ips(nom_fichier: str, niveau: str) -> pd.DataFrame:
-    """Charge un fichier IPS, le filtre sur la rentree de reference, harmonise.
-
-    Args:
-        nom_fichier: nom du CSV dans data/raw/ (ex. "ips_ecoles.csv").
-        niveau: "ecole" ou "college", ajoute en colonne pour pouvoir
-            empiler les deux fichiers ensuite.
+def charger_ips() -> pd.DataFrame:
+    """Charge le fichier IPS des colleges et le filtre sur la rentree de reference.
 
     Returns:
-        Un DataFrame aux colonnes harmonisees entre ecoles et colleges.
+        Un DataFrame d'une ligne par college, colonnes reduites a l'utile.
     """
-    df = pd.read_csv(DATA_RAW / nom_fichier, **LECTURE_CSV)
+    df = pd.read_csv(DATA_RAW / "ips_colleges.csv", **LECTURE_CSV)
     total = len(df)
 
-    # Les fichiers IPS sont des PANELS : une ligne par (etablissement, rentree).
-    # Sans ce filtre, chaque etablissement serait compte jusqu'a trois fois.
+    # Le fichier IPS est un PANEL : une ligne par (college, rentree). Sans ce
+    # filtre, chaque college serait compte jusqu'a trois fois.
     df = df[df["rentree_scolaire"] == RENTREE_REFERENCE].copy()
 
-    print(f"  {nom_fichier:20s} {total:6d} lignes -> {len(df):6d} pour {RENTREE_REFERENCE}")
+    print(f"  ips_colleges.csv     {total:6d} lignes -> {len(df):6d} "
+          f"pour {RENTREE_REFERENCE}")
 
-    # Les deux fichiers ne nomment pas leurs colonnes de la meme facon :
-    # "code_de_l_academie" cote ecoles, "code_academie" cote colleges. On
-    # harmonise pour pouvoir les empiler.
-    df = df.rename(columns={"code_de_l_academie": "code_academie"})
-
-    # L'ecart-type de l'IPS n'existe que pour les colleges. On cree la colonne
-    # vide cote ecoles afin que les deux tables aient la meme structure.
-    if "ecart_type_de_l_ips" not in df.columns:
-        df["ecart_type_de_l_ips"] = pd.NA
-
-    df["niveau"] = niveau
-
-    colonnes = ["uai", "niveau", "secteur", "ips", "ecart_type_de_l_ips",
+    colonnes = ["uai", "secteur", "ips", "ecart_type_de_l_ips",
                 "code_insee_de_la_commune", "nom_de_la_commune",
                 "code_du_departement", "departement", "code_academie", "academie"]
     return df[colonnes]
@@ -72,6 +53,11 @@ def charger_ips(nom_fichier: str, niveau: str) -> pd.DataFrame:
 
 def charger_annuaire() -> pd.DataFrame:
     """Charge l'annuaire, controle puis supprime les UAI en double.
+
+    L'annuaire n'est pas restreint aux colleges : la jointure se faisant sur
+    les UAI du fichier IPS, les autres etablissements ne peuvent pas s'y
+    glisser. Les filtrer d'abord ferait courir le risque d'ecarter un college
+    type differemment dans l'annuaire — une cite scolaire, par exemple.
 
     Returns:
         Un DataFrame indexable par UAI, sans doublon.
@@ -119,11 +105,11 @@ def joindre_et_diagnostiquer(ips: pd.DataFrame, annuaire: pd.DataFrame) -> pd.Da
     perdre avant de le perdre. Les exclusions n'interviennent qu'ensuite.
 
     Args:
-        ips: table IPS empilee (ecoles + colleges), rentree de reference.
+        ips: table IPS des colleges, rentree de reference.
         annuaire: annuaire dedoublonne.
 
     Returns:
-        La table finale, sans etablissement non apparie ni IPS non publie.
+        La table finale, sans college non apparie ni IPS non publie.
     """
     df = ips.merge(annuaire, on="uai", how="left", validate="one_to_one")
 
@@ -131,33 +117,28 @@ def joindre_et_diagnostiquer(ips: pd.DataFrame, annuaire: pd.DataFrame) -> pd.Da
     # plusieurs fois d'un cote ou de l'autre. C'est une ceinture de securite :
     # mieux vaut une erreur bruyante qu'un fichier silencieusement gonfle.
 
-    # ---- Diagnostic 1 : etablissements absents de l'annuaire --------------
+    # ---- Diagnostic 1 : colleges absents de l'annuaire -------------------
     absents = df["nom_etablissement"].isna()
     print(f"\n  non apparies dans l'annuaire : {absents.sum()} "
           f"({100 * absents.mean():.1f}%)")
     if absents.any():
-        print("    repartition par niveau :",
-              df.loc[absents, "niveau"].value_counts().to_dict())
-        print("    top 5 departements    :",
+        print("    top 5 departements :",
               df.loc[absents, "code_du_departement"].value_counts().head(5).to_dict())
 
     # ---- Diagnostic 2 : IPS non publies ----------------------------------
-    # Les ecoles utilisent le code "NS" (moins de 25 eleves de CM2 sur cinq
-    # ans), les colleges laissent la case vide. `errors="coerce"` transforme
-    # l'un comme l'autre en valeur manquante.
+    # Le fichier laisse la case vide quand l'IPS n'est pas diffuse.
+    # `errors="coerce"` transforme ces cases en valeur manquante.
     df["ips"] = pd.to_numeric(df["ips"], errors="coerce")
-    df["ecart_type_de_l_ips"] = pd.to_numeric(df["ecart_type_de_l_ips"], errors="coerce")
+    df["ecart_type_de_l_ips"] = pd.to_numeric(df["ecart_type_de_l_ips"],
+                                              errors="coerce")
 
     sans_ips = df["ips"].isna()
     print(f"\n  IPS non publie : {sans_ips.sum()} ({100 * sans_ips.mean():.1f}%)")
-    print("    repartition par niveau :",
-          df.loc[sans_ips, "niveau"].value_counts().to_dict())
 
-    # VERIFICATION PROMISE : exclure ces etablissements biaise-t-il l'analyse ?
-    # Ils sont censes etre de petites ecoles rurales, donc peu concernees par
-    # l'education prioritaire, plutot urbaine. Si c'est vrai, leur exclusion
-    # ne devrait guere affecter la question posee. On le verifie au lieu de
-    # le supposer.
+    # VERIFICATION PROMISE : exclure ces colleges biaise-t-il l'analyse ?
+    # Si les colleges sans IPS etaient nettement plus ou moins souvent classes
+    # en education prioritaire que les autres, leur exclusion deplacerait le
+    # resultat. On le verifie au lieu de le supposer.
     apparies_sans_ips = df[sans_ips & ~absents]
     if len(apparies_sans_ips):
         part_ep = 100 * (apparies_sans_ips["ep"] != "hors EP").mean()
@@ -168,7 +149,7 @@ def joindre_et_diagnostiquer(ips: pd.DataFrame, annuaire: pd.DataFrame) -> pd.Da
     # ---- Exclusions ------------------------------------------------------
     avant = len(df)
     df = df[~absents & ~sans_ips].copy()
-    print(f"\n  exclusions : {avant} -> {len(df)} etablissements retenus")
+    print(f"\n  exclusions : {avant} -> {len(df)} colleges retenus")
 
     return df
 
@@ -183,8 +164,8 @@ def finaliser(df: pd.DataFrame) -> pd.DataFrame:
     print(f"  sans coordonnees geographiques : {sans_coord}")
 
     # On prefere le libelle de l'annuaire, accentue et en casse normale
-    # ("Ecole elementaire Jules Valles"), a celui des fichiers IPS, en
-    # majuscules non accentuees. Il sera lisible sur une carte.
+    # ("Collège Jules Vallès"), a celui du fichier IPS, en majuscules non
+    # accentuees. Il sera lisible sur une carte.
     df = df.rename(columns={
         "nom_etablissement": "nom",
         "ecart_type_de_l_ips": "ecart_type_ips",
@@ -193,29 +174,25 @@ def finaliser(df: pd.DataFrame) -> pd.DataFrame:
         "code_du_departement": "code_departement",
     })
 
-    colonnes = ["uai", "niveau", "nom", "secteur", "ep", "ips", "ecart_type_ips",
+    colonnes = ["uai", "nom", "secteur", "ep", "ips", "ecart_type_ips",
                 "code_commune", "nom_commune", "code_departement", "departement",
-                "code_academie", "academie", "latitude", "longitude",
-                "precision_localisation"]
-    return df[colonnes].sort_values(["niveau", "uai"]).reset_index(drop=True)
+                "code_academie", "academie", "latitude", "longitude"]
+    return df[colonnes].sort_values("uai").reset_index(drop=True)
 
 
 def main() -> None:
-    """Construit le fichier d'analyse a partir des trois fichiers bruts."""
+    """Construit le fichier d'analyse a partir des deux fichiers bruts."""
     print(f"Rentree de reference : {RENTREE_REFERENCE}\n")
 
     print("Lecture :")
-    ips = pd.concat([
-        charger_ips("ips_ecoles.csv", "ecole"),
-        charger_ips("ips_colleges.csv", "college"),
-    ], ignore_index=True)
+    ips = charger_ips()
     annuaire = charger_annuaire()
 
     df = joindre_et_diagnostiquer(ips, annuaire)
     df = finaliser(df)
 
     print("\nResultat :")
-    print(df.groupby(["niveau", "ep"]).agg(
+    print(df.groupby(["secteur", "ep"]).agg(
         effectif=("ips", "size"), ips_moyen=("ips", "mean")
     ).round(1).to_string())
 
