@@ -1,19 +1,24 @@
 """Les ecarts les plus forts au seuil budgetaire national, des deux cotes.
 
-Champ : colleges publics dont le score d'ecart au seuil NATIONAL (88,80 points)
-atteint au moins 10 points, soit plus de trois fois le seuil d'interpretabilite
-de 3 points recommande par la DEPP. Ce sont les cas qu'aucune imprecision de
-mesure ne peut expliquer.
+Champ : les CINQUANTE plus gros ecarts de chaque type, au seuil NATIONAL
+(88,80 points). Le classement se fait sur l'ampleur de l'ecart, non sur un
+seuil fixe.
+
+Consequence a connaitre : les deux tops ne couvrent pas la meme etendue. Du
+cote des sur-inclusions, le cinquantieme s'ecarte de 7,7 points ; du cote des
+oublis, de 5,7 points seulement. Un effectif constant des deux cotes impose
+donc d'aller chercher des ecarts plus faibles chez les oublis — c'est une
+autre facon de constater que les sur-inclusions sont plus amples.
 
 Deux types d'ecart, traites symetriquement :
 
     SUR-INCLUSION - college classe REP ou REP+ dont l'IPS DEPASSE le seuil.
     OUBLI         - college non classe dont l'IPS est INFERIEUR au seuil.
 
-Pour chacun, deux figures : barres empilees par academie, decoupees en trois
+Pour chacun, deux figures : barres empilees par academie, decoupees en quatre
 plages d'ecart, et carte portant l'effectif de chaque departement concerne.
 
-LES TROIS PLAGES SONT COMMUNES AUX DEUX TYPES, et conservees meme lorsqu'elles
+LES QUATRE PLAGES SONT COMMUNES AUX DEUX TYPES, et conservees meme lorsqu'elles
 sont vides. C'est indispensable : aucun oubli n'atteint 20 points alors que six
 sur-inclusions les depassent. Supprimer la tranche vide du cote des oublis
 rendrait les deux figures incomparables et effacerait ce constat.
@@ -53,35 +58,37 @@ from src.config import FIGURES, PROJECT_ROOT
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
-ECART_MINIMAL = 10.0
+TOP_N = 50
 SEUIL_NATIONAL = 88.80
 
 # Bornes inferieure et superieure, et libelle. La derniere plage est ouverte.
-PLAGES = [(10.0, 15.0, "10 à 15 points"),
+# Une quatrieme plage, sous 10 points, est necessaire : a effectif fixe, le bas
+# du top descend en dessous du seuil de 10 points retenu auparavant.
+PLAGES = [(0.0, 10.0, "moins de 10 points"),
+          (10.0, 15.0, "10 à 15 points"),
           (15.0, 20.0, "15 à 20 points"),
           (20.0, np.inf, "plus de 20 points")]
 
-# Un reglage par type d'ecart. Les trois teintes servent aux plages du
-# diagramme ; la quatrieme, plus sombre, n'apparait que sur la carte, pour la
-# classe des departements comptant au moins quatre etablissements.
+# Un reglage par type d'ecart. `teintes` sert aux plages du diagramme,
+# `teintes_carte` aux classes d'effectif de la carte : deux rampes distinctes,
+# car la carte compte des colleges quand le diagramme mesure des points d'IPS.
 TYPES = {
     "sur-inclus": dict(
         radical="sur_inclusions",
-        teintes=["#a8c4e8", "#5588cc", "#1f3b73"],
-        teinte_carte="#0b2350",
+        teintes=["#cfdcf1", "#a8c4e8", "#5588cc", "#1f3b73"],
+        teintes_carte=["#a8c4e8", "#5588cc", "#1f3b73", "#0b2350"],
         # A partir de cet effectif, le fond est assez sombre pour porter du
         # texte blanc. Les deux rampes ne s'assombrissent pas au meme rythme.
         texte_blanc_des=2,
-        titre_barres="Collèges classés dont l'IPS dépasse largement le seuil national",
+        titre_barres="Les 50 collèges classés dont l'IPS dépasse le plus le seuil",
         sous_titre_barres=(
-            "Collèges publics classés REP ou REP+ dont l'IPS dépasse d'au moins "
-            "{mini:.0f} points celui de l'établissement qui ferme l'enveloppe "
-            "nationale ({seuil} points),\nsoit plus de trois fois le seuil de "
-            "3 points en deçà duquel la DEPP recommande de ne pas interpréter une "
-            "différence d'IPS."),
+            "Les {mini:.0f} plus gros écarts parmi les collèges publics classés REP "
+            "ou REP+ dont l'IPS dépasse celui de l'établissement qui ferme\n"
+            "l'enveloppe nationale ({seuil} points). Le cinquantième s'écarte de "
+            "7,7 points, le premier de 32,2."),
         axe_barres="Nombre de collèges publics sur-inclus",
-        titre_carte=("Où se trouvent les collèges classés dont l'IPS dépasse\n"
-                     "le seuil national de plus de 10 points"),
+        titre_carte=("Où se trouvent les 50 collèges classés dont l'IPS\n"
+                     "dépasse le plus le seuil national"),
         legende_carte="Collèges sur-inclus",
         contrainte=(
             "L'enveloppe d'éducation prioritaire est répartie par académie avant que "
@@ -92,19 +99,18 @@ TYPES = {
     ),
     "oublie": dict(
         radical="oublis",
-        teintes=["#f6c5ac", "#ee8e56", "#c9551d"],
-        teinte_carte="#7a2f0e",
+        teintes=["#fbe0d2", "#f6c5ac", "#ee8e56", "#c9551d"],
+        teintes_carte=["#f6c5ac", "#ee8e56", "#c9551d", "#7a2f0e"],
         texte_blanc_des=3,
-        titre_barres="Collèges non classés dont l'IPS est très inférieur au seuil national",
+        titre_barres="Les 50 collèges non classés dont l'IPS est le plus sous le seuil",
         sous_titre_barres=(
-            "Collèges publics classés ni REP ni REP+ dont l'IPS est inférieur d'au "
-            "moins {mini:.0f} points à celui de l'établissement qui ferme "
-            "l'enveloppe nationale ({seuil} points),\nsoit plus de trois fois le "
-            "seuil de 3 points en deçà duquel la DEPP recommande de ne pas "
-            "interpréter une différence d'IPS."),
+            "Les {mini:.0f} plus gros écarts parmi les collèges publics classés ni "
+            "REP ni REP+ dont l'IPS est inférieur à celui de l'établissement qui\n"
+            "ferme l'enveloppe nationale ({seuil} points). Le cinquantième s'écarte "
+            "de 5,7 points, le premier de 17,4."),
         axe_barres="Nombre de collèges publics non classés",
-        titre_carte=("Où se trouvent les collèges non classés dont l'IPS est\n"
-                     "inférieur au seuil national de plus de 10 points"),
+        titre_carte=("Où se trouvent les 50 collèges non classés dont l'IPS\n"
+                     "est le plus sous le seuil national"),
         legende_carte="Collèges oubliés",
         contrainte=(
             "L'enveloppe d'éducation prioritaire est répartie par académie avant que "
@@ -142,15 +148,22 @@ def replier(texte: str, largeur: int = LARGEUR_NOTE_CARTE) -> str:
 
 
 def charger(type_ecart: str) -> pd.DataFrame:
-    """Colleges d'un type d'ecart donne, au-dela de ECART_MINIMAL, avec leur plage."""
+    """Les TOP_N plus gros ecarts d'un type donne, avec leur plage.
+
+    La selection se fait sur le RANG et non sur un seuil : les deux types sont
+    ainsi representes par un effectif identique, ce qui rend les cartes
+    directement comparables. En contrepartie, les deux tops ne couvrent pas la
+    meme etendue d'ecart — c'est la rancon d'un effectif constant, et le
+    sous-titre de chaque figure le precise.
+    """
     fichier = DOSSIER_TABLES / "score_ecart_ips.csv"
     if not fichier.exists():
         raise FileNotFoundError(
             f"{fichier.name} absent. Lance d'abord : uv run python -m src.score_ecart")
 
     df = pd.read_csv(fichier, dtype={"code_departement": str, "code_commune": str})
-    sous = df[(df["type_ecart"] == type_ecart)
-              & (df["score_ecart_ips"] >= ECART_MINIMAL)].copy()
+    sous = df[df["type_ecart"] == type_ecart].nlargest(
+        TOP_N, "score_ecart_ips").copy()
 
     sous["plage"] = pd.cut(
         sous["score_ecart_ips"],
@@ -214,7 +227,7 @@ def figure_academies(sous: pd.DataFrame, reglage: dict) -> None:
                  x=0.02, ha="left", y=0.975)
     fig.text(0.02, 0.945,
              reglage["sous_titre_barres"].format(
-                 mini=ECART_MINIMAL,
+                 mini=TOP_N,
                  # Separateur decimal francais : "88,80" et non "88.80".
                  seuil=f"{SEUIL_NATIONAL:.2f}".replace(".", ",")),
              fontsize=8.5, va="top", color=ENCRE_2)
@@ -239,7 +252,7 @@ def classes_effectif(maximum: int, reglage: dict) -> tuple:
     """
     paliers = [0.5, 1.5, 2.5, 3.5]
     bornes = np.array([b for b in paliers if b < maximum] + [maximum + 0.5])
-    couleurs = (reglage["teintes"] + [reglage["teinte_carte"]])[:len(bornes) - 1]
+    couleurs = reglage["teintes_carte"][:len(bornes) - 1]
 
     etiquettes = [f"{n} collège" + ("s" if n > 1 else "")
                   for n in range(1, len(bornes) - 1)]
@@ -313,8 +326,9 @@ def main() -> None:
 
     for type_ecart, reglage in TYPES.items():
         sous = charger(type_ecart)
-        print(f"\n{'=' * 72}\n{type_ecart.upper()} : {len(sous)} colleges "
-              f"d'au moins {ECART_MINIMAL:.0f} points\n{'=' * 72}")
+        q = sous["score_ecart_ips"]
+        print(f"\n{'=' * 72}\n{type_ecart.upper()} : top {len(sous)}, "
+              f"de {q.min():.1f} a {q.max():.1f} points d'ecart\n{'=' * 72}")
         print(sous["plage"].value_counts().reindex(
             [libelle for _, _, libelle in PLAGES]).to_string())
 

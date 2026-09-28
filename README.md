@@ -200,22 +200,31 @@ Ces deux cas sont de sens opposé : **oubli** (sous le seuil, non classé) et
 
 **Commentaire à ajouter moi meme**
 
+Les quatre figures qui suivent retiennent, de chaque côté, les **50 plus gros
+écarts**. La sélection se fait sur le rang et non sur un seuil fixe : les deux
+séries ont ainsi le même effectif, ce qui rend les cartes directement comparables.
+
+La contrepartie est instructive. **À effectif égal, les deux tops ne couvrent pas la
+même étendue** : le cinquantième écart vaut 7,7 points du côté des sur-inclusions et
+5,7 points seulement du côté des oublis. Il faut donc descendre plus bas pour réunir
+cinquante oublis — une autre façon de constater que le dispositif se trompe plus fort
+lorsqu'il classe que lorsqu'il omet.
+
 #### Les sur-inclusions
 
 ![Collèges sur-inclus par académie et par ampleur de l'écart](outputs/figures/sur_inclusions_academies.png)
 
-Treize académies sur trente sont concernées ; les dix-sept autres n'ont aucun cas.
-**Paris en concentre 11 à lui seul**, dont 4 des 6 écarts supérieurs à 20 points.
-Bordeaux suit avec 5, dont les 2 autres écarts extrêmes. À elles deux, ces académies
-détiennent la totalité de la tranche haute.
+Vingt académies sur trente sont représentées ; les dix autres n'ont aucun collège
+dans le top 50. **Paris en concentre 13 à lui seul**, dont les 4 écarts supérieurs à
+20 points. Bordeaux suit avec 6, dont les 2 autres écarts extrêmes : à elles deux,
+ces académies détiennent la totalité de la tranche haute.
 
 ![Nombre de collèges sur-inclus par département](outputs/figures/sur_inclusions_departements.png)
 
-Seize départements sont concernés : Paris (11), la Gironde (3), puis la Corse-du-Sud,
-la Dordogne, la Seine-Saint-Denis et la Nièvre (2 chacun). Le fait notable est
-l'**absence de motif géographique** : en dehors de deux foyers urbains, les cas sont
-isolés et dispersés, sans continuité territoriale, et aucun DROM n'est concerné. Il
-ne s'agit donc pas d'un phénomène régional mais d'une accumulation de situations
+Vingt-huit départements sont concernés : Paris (13), puis la Gironde, la Nièvre et la
+Corse-du-Sud (3 chacun). Le fait notable est l'**absence de motif géographique** :
+en dehors de Paris, les cas sont isolés et dispersés, sans continuité territoriale.
+Il ne s'agit donc pas d'un phénomène régional mais d'une accumulation de situations
 locales.
 
 #### Les oublis
@@ -225,22 +234,24 @@ locales.
 **Aucun oubli n'atteint 20 points** — le plus fort vaut 17,4 — alors que six
 sur-inclusions dépassent ce niveau. La tranche haute figure dans la légende mais
 reste vide : les deux figures partagent le même découpage, sans quoi l'asymétrie
-disparaîtrait de la lecture. Elle est le fait le plus net de cette comparaison.
-Le dispositif se trompe donc dans les deux sens, mais il se trompe plus souvent
-*et* plus fort lorsqu'il classe que lorsqu'il omet.
+disparaîtrait de la lecture. Et là où 32 sur-inclusions dépassent 10 points, les
+oublis ne sont que 16 : les deux tiers du top 50 des oublis restent sous ce niveau.
 
-Dix académies sont concernées, et la dispersion est bien plus forte que du côté des
-sur-inclusions : Montpellier en compte 4, Lille, Lyon et Nancy-Metz 2 chacune, six
-autres une seule. Aucune académie ne domine comme Paris domine les sur-inclusions.
+Vingt académies sont représentées, et la concentration est d'une tout autre nature
+que du côté des sur-inclusions : **Lille en compte 9 et Nancy-Metz 7**, soit un tiers
+du total à elles deux, mais aucune ne domine comme Paris. Ce sont deux académies que
+l'arithmétique de l'enveloppe contraint — elles comptent plus de collèges sous le
+seuil national que de places à pourvoir.
 
 ![Nombre de collèges oubliés par département](outputs/figures/oublis_departements.png)
 
-Treize départements, dont trois à deux collèges — l'Hérault, la Loire et le
-Pas-de-Calais. La répartition est ici franchement périphérique : Nord-Est, sillon
-rhodanien, arc méditerranéen, Antilles. Les deux cas les plus marqués sont le collège
-Gérard Philipe de Clermont-Ferrand (IPS 71,4) et le collège Montesquieu
-d'Évry-Courcouronnes (71,8), non classés alors que leur IPS les place parmi les plus
-défavorisés de France.
+Vingt-huit départements. Le **Nord en compte 6** et la Moselle 4, devant l'Aisne, la
+Meurthe-et-Moselle, le Haut-Rhin, le Pas-de-Calais et la Loire (3 chacun). La
+répartition est ici franchement périphérique et continue — Nord, Nord-Est, sillon
+rhodanien, arc méditerranéen — à l'inverse du semis dispersé des sur-inclusions. Les
+deux cas les plus marqués sont le collège Gérard Philipe de Clermont-Ferrand
+(IPS 71,4) et le collège Montesquieu d'Évry-Courcouronnes (71,8), non classés alors
+que leur IPS les place parmi les plus défavorisés de France.
 
 ### Pourquoi Paris n'est pas comparable aux autres
 
