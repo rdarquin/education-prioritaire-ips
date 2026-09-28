@@ -69,7 +69,8 @@ DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 SEUIL_SIGNIFICATIF = 3.0
 
 # Effectif minimal d'etablissements pour qu'une part departementale ait un
-# sens. Meme logique que SEUIL_SIGNIFICATIVITE dans `cartographie.py`.
+# sens : en dessous, un seul etablissement deplacerait la part de plusieurs
+# points. Les departements concernes sont laisses en gris.
 MIN_ETABLISSEMENTS = {"college": 20, "ecole": 50}
 
 # Effectif minimal d'etablissements SIGNIFICATIFS pour que leur moyenne ait un

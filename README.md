@@ -227,7 +227,6 @@ uv sync
 uv run python -m src.download
 uv run python -m src.preparation
 uv run python -m src.analyse
-uv run python -m src.cartographie
 uv run python -m src.score_ecart
 uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
@@ -242,7 +241,7 @@ uv run python -m src.ecarts_extremes
 | `src/download.py` | télécharge les trois jeux de données bruts |
 | `src/preparation.py` | nettoie, joint, contrôle les biais d'exclusion |
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
-| `src/cartographie.py` | les deux cartes |
+| `src/cartographie.py` | fond de carte partagé : contours, DROM rapprochés, annotations |
 | `src/score_ecart.py` | score d'écart d'IPS par établissement, aux seuils national et académique |
 | `src/distribution_ecart.py` | forme de la distribution de l'écart, aux deux seuils |
 | `src/ecarts_extremes.py` | les écarts d'au moins 10 points, des deux côtés, par académie et par département |
@@ -344,18 +343,30 @@ systématiquement (5 %, 10 %, 15 %, 20 %, 25 %).
 
 Les contours départementaux proviennent de `cartiflette`, package du laboratoire
 d'innovation de l'Insee redistribuant les fonds IGN ADMIN EXPRESS, dans sa variante
-« DROM rapprochés » — convention des publications de l'Insee.
+« DROM rapprochés » — convention des publications de l'Insee. Les départements
+d'outre-mer y sont déplacés et redimensionnés pour figurer auprès de la métropole :
+**ces cartes ne permettent donc aucune mesure de distance ni de surface**, et chacune
+le rappelle dans sa note.
 
-Deux conséquences traitées explicitement dans `src/cartographie.py` :
+`src/cartographie.py` fournit le fond commun à toutes les cartes du dépôt — contours,
+transformation des DROM et annotation des territoires ultramarins, qui seraient sinon
+impossibles à identifier puisqu'ils ne sont ni à leur place ni à leur échelle.
 
-1. Les coordonnées des établissements étant réelles alors que le fond déplace les
-   DROM, la transformation appliquée à chaque territoire ultramarin est déduite de
-   la comparaison des emprises, puis appliquée aux points. Elle est **vérifiée par
-   contrôle d'appartenance** : chacun des 653 points doit tomber dans son département
-   sur le fond transformé, faute de quoi le module échoue sans produire la figure.
-2. Les départements comptant moins de 20 établissements défavorisés sont laissés en
-   gris. Un taux calculé sur un effectif plus faible varierait de plusieurs points
-   au gré d'un seul établissement.
+Trois partis sont pris systématiquement :
+
+1. **Un effectif minimal conditionne l'affichage.** Un taux départemental calculé sur
+   quelques établissements varierait de plusieurs points au gré d'un seul d'entre
+   eux ; les départements concernés sont laissés en gris plutôt qu'affichés avec une
+   valeur instable.
+2. **Les échelles sont découpées en classes de quantiles**, et non en rampes
+   linéaires. La distribution des scores départementaux est très asymétrique :
+   quelques départements extrêmes absorberaient toute la dynamique de couleur et
+   écraseraient les quatre-vingt-dix autres dans une teinte indistincte. Les bornes
+   de classes sont affichées sur chaque barre de couleur.
+3. **La nature de la variable commande la palette.** Une grandeur sans polarité reçoit
+   une échelle séquentielle d'une seule teinte ; une grandeur signée reçoit une
+   échelle divergente dont le point neutre est un gris, et non un blanc qui
+   disparaîtrait sur le fond.
 
 ## Résultats
 
@@ -449,29 +460,6 @@ La variabilité départementale est donc réelle et forte, mais elle ne s'expliq
 par la richesse du département. Elle appelle d'autres pistes : l'ancienneté de la
 carte de l'éducation prioritaire, dont la dernière révision d'ampleur remonte à
 2015, ou des différences de pratique entre académies.
-
-### Cartographie
-
-![Part des établissements défavorisés non classés, par département](outputs/figures/couverture_departementale.png)
-
-Les départements en gris comptent moins de 20 établissements défavorisés : le taux y
-serait trop instable pour être lu. Cette réserve concerne 59 départements sur 101 —
-dans la majorité du territoire, les établissements relevant des 10 % les plus
-défavorisés sont trop peu nombreux pour qu'un taux départemental ait un sens.
-
-![Les 653 établissements défavorisés non classés](outputs/figures/non_classes_points.png)
-
-La carte de points donne à voir ce que les taux masquent : la dispersion. Les
-établissements concernés ne forment pas quelques poches identifiables mais un semis
-réparti sur tout le territoire, avec des concentrations dans le Nord, le
-Pas-de-Calais et à La Réunion.
-
-*Les cartes utilisent la convention des DROM rapprochés : les départements d'outre-mer
-sont déplacés et redimensionnés pour figurer auprès de la métropole. Elles ne
-permettent donc aucune mesure de distance ou de surface. Le repositionnement des
-points est vérifié par contrôle d'appartenance — chacun des 653 établissements doit
-tomber à l'intérieur de son département sur le fond transformé, faute de quoi la
-figure n'est pas produite.*
 
 ---
 
