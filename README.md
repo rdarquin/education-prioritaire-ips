@@ -229,7 +229,7 @@ uv run python -m src.preparation
 uv run python -m src.analyse
 uv run python -m src.cartographie
 uv run python -m src.score_ecart
-uv run python -m src.sur_inclusions
+uv run python -m src.ecarts_extremes
 ```
 
 `uv sync` installe Python 3.12 et les dépendances aux versions exactes figées dans
@@ -243,7 +243,7 @@ uv run python -m src.sur_inclusions
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | les deux cartes |
 | `src/score_ecart.py` | score d'écart d'IPS par établissement, aux seuils national et académique |
-| `src/sur_inclusions.py` | les sur-inclusions les plus fortes, par académie et par département |
+| `src/ecarts_extremes.py` | les écarts d'au moins 10 points, des deux côtés, par académie et par département |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -506,11 +506,14 @@ des écarts non nuls est de 3,2 points — à peine au-dessus du seuil de 3 poin
 deçà duquel la DEPP recommande de ne rien interpréter. Rapporté au nombre de places,
 l'écart total vaut 2,01 points d'IPS par collège classé.
 
-### Les 32 cas au-delà de 10 points
+### Les 48 cas au-delà de 10 points
 
-Restent les cas qu'aucune imprécision de mesure ne peut expliquer : 32 collèges
-classés REP ou REP+ dont l'IPS dépasse le seuil de plus de 10 points, soit plus de
-trois fois le seuil d'interprétabilité.
+Restent les cas qu'aucune imprécision de mesure ne peut expliquer : **48 collèges**
+dont l'écart au seuil atteint 10 points, soit plus de trois fois le seuil
+d'interprétabilité. Ils se répartissent en **32 sur-inclusions et 16 oublis** — deux
+fois plus de collèges classés à tort, au sens de l'IPS, que de collèges oubliés.
+
+#### Les sur-inclusions
 
 ![Collèges sur-inclus par académie et par ampleur de l'écart](outputs/figures/sur_inclusions_academies.png)
 
@@ -527,6 +530,30 @@ l'**absence de motif géographique** : en dehors de deux foyers urbains, les cas
 isolés et dispersés, sans continuité territoriale, et aucun DROM n'est concerné. Il
 ne s'agit donc pas d'un phénomène régional mais d'une accumulation de situations
 locales.
+
+#### Les oublis
+
+![Collèges oubliés par académie et par ampleur de l'écart](outputs/figures/oublis_academies.png)
+
+**Aucun oubli n'atteint 20 points** — le plus fort vaut 17,4 — alors que six
+sur-inclusions dépassent ce niveau. La tranche haute figure dans la légende mais
+reste vide : les deux figures partagent le même découpage, sans quoi l'asymétrie
+disparaîtrait de la lecture. Elle est le fait le plus net de cette comparaison.
+Le dispositif se trompe donc dans les deux sens, mais il se trompe plus souvent
+*et* plus fort lorsqu'il classe que lorsqu'il omet.
+
+Dix académies sont concernées, et la dispersion est bien plus forte que du côté des
+sur-inclusions : Montpellier en compte 4, Lille, Lyon et Nancy-Metz 2 chacune, six
+autres une seule. Aucune académie ne domine comme Paris domine les sur-inclusions.
+
+![Nombre de collèges oubliés par département](outputs/figures/oublis_departements.png)
+
+Treize départements, dont trois à deux collèges — l'Hérault, la Loire et le
+Pas-de-Calais. La répartition est ici franchement périphérique : Nord-Est, sillon
+rhodanien, arc méditerranéen, Antilles. Les deux cas les plus marqués sont le collège
+Gérard Philipe de Clermont-Ferrand (IPS 71,4) et le collège Montesquieu
+d'Évry-Courcouronnes (71,8), non classés alors que leur IPS les place parmi les plus
+défavorisés de France.
 
 ### Pourquoi Paris n'est pas comparable aux autres
 
