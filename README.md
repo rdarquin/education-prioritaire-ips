@@ -190,54 +190,7 @@ Ces deux cas sont de sens opposé : **oubli** (sous le seuil, non classé) et
 
 ![Distribution de l'écart d'IPS au seuil budgétaire](outputs/figures/distribution_ecart.png)
 
-La variable est à **inflation de zéros**, ce qui impose deux précautions de tracé.
-La barre du zéro est tronquée et son effectif annoté, faute de quoi elle écraserait
-tout le reste ; et les classes sont calées pour que zéro tombe au *centre* d'une
-barre, sans quoi les conformes se répartiraient sur deux barres voisines et la masse
-centrale paraîtrait deux fois plus petite qu'elle n'est.
-
-**L'écart, quand il existe, est le plus souvent minuscule.** La médiane des écarts
-non nuls est de **3,2 points**, soit à peine au-dessus du seuil que la DEPP juge
-interprétable. La moitié des collèges non conformes s'écartent donc d'une quantité
-que l'indicateur ne permet pas de lire.
-
-**L'asymétrie ne porte pas sur les effectifs mais sur les queues.** Les deux côtés
-comptent presque le même nombre de collèges — 249 oublis contre 250 sur-inclusions —
-mais ils ne se répartissent pas de la même façon. Les oublis s'entassent près de
-zéro : 135 des 249 restent sous 3 points. Les sur-inclusions peuplent la queue :
-141 des 250 la dépassent. Visuellement, la barre la plus haute est orange, juste à
-droite de zéro, mais c'est le bleu qui s'étire jusqu'à −32 quand l'orange s'arrête à
-+18. Le dispositif se trompe aussi souvent dans les deux sens, mais il se trompe
-plus fort lorsqu'il classe.
-
-Le trait noir donne la même distribution lorsque le seuil est recalculé académie par
-académie. **Le resserrement porte sur la queue, non sur le centre** : la part de
-conformes ne gagne que 1,4 point (90,6 → 92,0 %), mais le centile 99 tombe de 20,2 à
-17,1. Autrement dit, changer d'étalon élimine les cas spectaculaires sans rien
-changer au désaccord de fond.
-
-Le tableau placé sous le graphe donne la répartition chiffrée. Ses plages sont
-**symétriques autour de zéro**, de sorte qu'une asymétrie entre les deux moitiés soit
-une propriété des données et non du découpage.
-
-| Seuil | < −10 | −10 à −3 | **−3 à +3** | +3 à +10 | > +10 |
-|---|---:|---:|---:|---:|---:|
-| National | 0,5 % | 2,1 % | **95,2 %** | 1,8 % | 0,3 % |
-| Académique | 0,4 % | 2,0 % | **96,1 %** | 1,5 % | 0,1 % |
-
-Trois lectures. **Plus de 95 % des collèges tiennent dans ± 3 points**, c'est-à-dire
-dans la marge que la DEPP juge ininterprétable. **Les deux moitiés ne s'équilibrent
-pas** : 2,6 % des collèges sont du côté de la sur-inclusion contre 2,1 % du côté de
-l'oubli, et l'écart se creuse aux extrêmes — 0,5 % au-delà de −10 contre 0,3 % au-delà
-de +10. **Le seuil académique agit surtout sur la tranche extrême des oublis**, qui
-passe de 0,3 % à 0,1 %, soit d'environ seize collèges à cinq.
-
-### Les 48 cas au-delà de 10 points
-
-Restent les cas qu'aucune imprécision de mesure ne peut expliquer : **48 collèges**
-dont l'écart au seuil atteint 10 points, soit plus de trois fois le seuil
-d'interprétabilité. Ils se répartissent en **32 sur-inclusions et 16 oublis** — deux
-fois plus de collèges classés à tort, au sens de l'IPS, que de collèges oubliés.
+**Commentaire à ajouter moi meme**
 
 #### Les sur-inclusions
 
