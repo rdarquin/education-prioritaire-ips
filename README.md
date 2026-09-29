@@ -112,6 +112,7 @@ uv run python -m src.score_ecart
 uv run python -m src.distribution_ips
 uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
+uv run python -m src.carte_enveloppe
 ```
 
 `uv sync` installe Python 3.12 et les dépendances aux versions exactes figées dans
@@ -127,7 +128,8 @@ uv run python -m src.ecarts_extremes
 | `src/score_ecart.py` | score d'écart d'IPS par collège, aux seuils national et académique |
 | `src/distribution_ips.py` | distribution des IPS et position des seuils, national et académiques |
 | `src/distribution_ecart.py` | distribution de l'écart au seuil, en points d'IPS, et sa répartition par plage |
-| `src/ecarts_extremes.py` | les écarts d'au moins 10 points, des deux côtés, par académie et par département |
+| `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
+| `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus défavorisés |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -200,58 +202,49 @@ Ces deux cas sont de sens opposé : **oubli** (sous le seuil, non classé) et
 
 **Commentaire à ajouter moi meme**
 
-Les quatre figures qui suivent retiennent, de chaque côté, les **50 plus gros
-écarts**. La sélection se fait sur le rang et non sur un seuil fixe : les deux
-séries ont ainsi le même effectif, ce qui rend les cartes directement comparables.
+Les deux cartes qui suivent retiennent, de chaque côté, les **50 plus gros écarts**.
+La sélection se fait sur le rang et non sur un seuil fixe : les deux séries ont ainsi
+le même effectif, ce qui rend les cartes directement comparables.
 
 La contrepartie est instructive. **À effectif égal, les deux tops ne couvrent pas la
 même étendue** : le cinquantième écart vaut 7,7 points du côté des sur-inclusions et
 5,7 points seulement du côté des oublis. Il faut donc descendre plus bas pour réunir
 cinquante oublis — une autre façon de constater que le dispositif se trompe plus fort
-lorsqu'il classe que lorsqu'il omet.
+lorsqu'il classe que lorsqu'il omet. Dans le même sens : **aucun oubli n'atteint
+20 points**, le plus fort valant 17,4, alors que six sur-inclusions dépassent ce
+niveau.
 
 #### Les sur-inclusions
 
-![Collèges sur-inclus par académie et par ampleur de l'écart](outputs/figures/sur_inclusions_academies.png)
-
-Vingt académies sur trente sont représentées ; les dix autres n'ont aucun collège
-dans le top 50. **Paris en concentre 13 à lui seul**, dont les 4 écarts supérieurs à
-20 points. Bordeaux suit avec 6, dont les 2 autres écarts extrêmes : à elles deux,
-ces académies détiennent la totalité de la tranche haute.
-
 ![Nombre de collèges sur-inclus par département](outputs/figures/sur_inclusions_departements.png)
 
-Vingt-huit départements sont concernés : Paris (13), puis la Gironde, la Nièvre et la
-Corse-du-Sud (3 chacun). Le fait notable est l'**absence de motif géographique** :
-en dehors de Paris, les cas sont isolés et dispersés, sans continuité territoriale.
-Il ne s'agit donc pas d'un phénomène régional mais d'une accumulation de situations
-locales.
+Vingt-huit départements sont concernés : **Paris en compte 13 à lui seul**, puis la
+Gironde, la Nièvre et la Corse-du-Sud (3 chacun). Le fait notable est l'**absence de
+motif géographique** : en dehors de Paris, les cas sont isolés et dispersés, sans
+continuité territoriale. Il ne s'agit donc pas d'un phénomène régional mais d'une
+accumulation de situations locales.
+
+Au niveau académique, vingt académies sur trente sont représentées. Paris y détient
+les 4 écarts supérieurs à 20 points et Bordeaux les 2 autres : à elles deux, ces
+académies concentrent la totalité de la tranche haute.
 
 #### Les oublis
 
-![Collèges oubliés par académie et par ampleur de l'écart](outputs/figures/oublis_academies.png)
-
-**Aucun oubli n'atteint 20 points** — le plus fort vaut 17,4 — alors que six
-sur-inclusions dépassent ce niveau. La tranche haute figure dans la légende mais
-reste vide : les deux figures partagent le même découpage, sans quoi l'asymétrie
-disparaîtrait de la lecture. Et là où 32 sur-inclusions dépassent 10 points, les
-oublis ne sont que 16 : les deux tiers du top 50 des oublis restent sous ce niveau.
-
-Vingt académies sont représentées, et la concentration est d'une tout autre nature
-que du côté des sur-inclusions : **Lille en compte 9 et Nancy-Metz 7**, soit un tiers
-du total à elles deux, mais aucune ne domine comme Paris. Ce sont deux académies que
-l'arithmétique de l'enveloppe contraint — elles comptent plus de collèges sous le
-seuil national que de places à pourvoir.
-
 ![Nombre de collèges oubliés par département](outputs/figures/oublis_departements.png)
 
-Vingt-huit départements. Le **Nord en compte 6** et la Moselle 4, devant l'Aisne, la
-Meurthe-et-Moselle, le Haut-Rhin, le Pas-de-Calais et la Loire (3 chacun). La
-répartition est ici franchement périphérique et continue — Nord, Nord-Est, sillon
-rhodanien, arc méditerranéen — à l'inverse du semis dispersé des sur-inclusions. Les
-deux cas les plus marqués sont le collège Gérard Philipe de Clermont-Ferrand
-(IPS 71,4) et le collège Montesquieu d'Évry-Courcouronnes (71,8), non classés alors
-que leur IPS les place parmi les plus défavorisés de France.
+Vingt-huit départements également. Le **Nord en compte 6** et la Moselle 4, devant
+l'Aisne, la Meurthe-et-Moselle, le Haut-Rhin, le Pas-de-Calais et la Loire (3
+chacun). La répartition est ici franchement périphérique et continue — Nord,
+Nord-Est, sillon rhodanien, arc méditerranéen — à l'inverse du semis dispersé des
+sur-inclusions. Les deux cas les plus marqués sont le collège Gérard Philipe de
+Clermont-Ferrand (IPS 71,4) et le collège Montesquieu d'Évry-Courcouronnes (71,8),
+non classés alors que leur IPS les place parmi les plus défavorisés de France.
+
+Au niveau académique, la concentration est d'une tout autre nature que du côté des
+sur-inclusions : **Lille en compte 9 et Nancy-Metz 7**, soit un tiers du total à
+elles deux, mais aucune ne domine comme Paris. Ce sont précisément deux académies
+que l'arithmétique de l'enveloppe contraint — elles comptent plus de collèges sous
+le seuil national que de places à pourvoir.
 
 ### Pourquoi Paris n'est pas comparable aux autres
 
@@ -269,6 +262,20 @@ académique en parallèle de la variante nationale, dans les mêmes fichiers.
 Bordeaux, en revanche, résiste au changement d'étalon : l'IPS médian des collèges de
 Gironde est de 107,4, et le collège le plus sur-inclus de France y atteint 121,0. Son
 écart ne s'explique pas par un effet de repère.
+
+### L'enveloppe reçue, académie par académie
+
+Le cas parisien n'est pas isolé : il est l'extrême d'un mécanisme qui vaut partout.
+La carte suivante généralise le raisonnement à toutes les académies en rapportant
+les **places reçues** au nombre de collèges de l'académie qui figurent parmi les
+**1 094 collèges d'IPS le plus faible du pays** — soit exactement le nombre de
+places distribuées. Le ratio national vaut donc **1 par construction**, et la carte
+se lit comme une redistribution à somme nulle : ce qu'une académie reçoit au-dessus
+de 1, une autre le perd.
+
+![Ratio entre places reçues et collèges les plus défavorisés, par académie](outputs/figures/ratio_enveloppe_academies.png)
+
+**Commentaire à ajouter moi meme**
 
 *Cette mesure compare la carte réelle à un classement par IPS. L'IPS n'étant pas le
 critère officiel, un écart signale un désaccord entre deux instruments — et non une

@@ -241,13 +241,22 @@ def comparer_academies(df: pd.DataFrame) -> pd.DataFrame:
     l'etalon national, et ce qu'il reste une fois l'academie jugee sur
     elle-meme.
     """
+    # Ensemble optimal NATIONAL : les n colleges d'IPS le plus faible du pays,
+    # n etant le nombre de classes. Defini par le RANG et non par une inegalite
+    # stricte sur le seuil, sans quoi les ex aequo au seuil — onze colleges —
+    # tomberaient hors du compte et la somme par academie ne retomberait pas
+    # sur le total national. C'est cette definition qui garantit un ratio
+    # d'enveloppe exactement egal a 1 pour la France entiere.
+    n_total = int(df["classe_ep"].sum())
+    optimal_national = set(df.nsmallest(n_total, "ips")["uai"])
+
     lignes = []
     for (code, nom), g in df.groupby(["code_academie", "academie"], sort=False):
         n_classes = int(g["classe_ep"].sum())
         if n_classes == 0:
             continue
         seuil_nat = g["ips_seuil"].iloc[0]
-        sous_seuil_nat = int((g["ips"] < seuil_nat).sum())
+        defavorises_nat = int(g["uai"].isin(optimal_national).sum())
 
         # Recouvrement : combien des classes reels figurent parmi les n
         # colleges les plus defavorises de l'academie ?
@@ -259,10 +268,15 @@ def comparer_academies(df: pd.DataFrame) -> pd.DataFrame:
             "academie": nom,
             "colleges": len(g),
             "classes": n_classes,
-            "sous_seuil_national": sous_seuil_nat,
+            "defavorises_national": defavorises_nat,
+            # Places recues rapportees aux colleges que l'academie compte parmi
+            # les plus defavorises du pays. Vaut 1 pour la France entiere par
+            # construction : les deux totaux sont le meme nombre.
+            "ratio_enveloppe": round(n_classes / defavorises_nat, 2)
+            if defavorises_nat else float("nan"),
             # Minimum de sur-inclusions impose par l'etalon national : on ne
-            # peut pas classer n colleges si moins de n sont sous le seuil.
-            "sur_incl_forcees": max(0, n_classes - sous_seuil_nat),
+            # peut pas classer n colleges si moins de n sont defavorises.
+            "sur_incl_forcees": max(0, n_classes - defavorises_nat),
             "sur_incl_national": int((g["type_ecart"] == "sur-inclus").sum()),
             "sur_incl_academique": int((g["type_ecart_academie"] == "sur-inclus").sum()),
             "oublis_academique": int((g["type_ecart_academie"] == "oublie").sum()),
@@ -302,7 +316,8 @@ def main() -> None:
     print(f"\n{'=' * 78}")
     print("LES DEUX VARIANTES, ACADEMIE PAR ACADEMIE")
     print("=" * 78)
-    colonnes = ["academie", "colleges", "classes", "sous_seuil_national",
+    colonnes = ["academie", "colleges", "classes", "defavorises_national",
+                "ratio_enveloppe",
                 "sur_incl_forcees", "sur_incl_national", "sur_incl_academique",
                 "seuil_academique", "recouvrement_pct"]
     tri = academies.sort_values("sur_incl_national", ascending=False)

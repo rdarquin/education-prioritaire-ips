@@ -15,19 +15,16 @@ Deux types d'ecart, traites symetriquement :
     SUR-INCLUSION - college classe REP ou REP+ dont l'IPS DEPASSE le seuil.
     OUBLI         - college non classe dont l'IPS est INFERIEUR au seuil.
 
-Pour chacun, deux figures : barres empilees par academie, decoupees en quatre
-plages d'ecart, et carte portant l'effectif de chaque departement concerne.
+Pour chacun, une carte portant l'effectif de chaque departement concerne. Les
+repartitions par academie et par plage d'ecart restent imprimees dans la
+console et exportees en CSV : elles nourrissent le commentaire du README sans
+qu'une figure leur soit consacree.
 
-LES QUATRE PLAGES SONT COMMUNES AUX DEUX TYPES, et conservees meme lorsqu'elles
-sont vides. C'est indispensable : aucun oubli n'atteint 20 points alors que six
-sur-inclusions les depassent. Supprimer la tranche vide du cote des oublis
-rendrait les deux figures incomparables et effacerait ce constat.
+La teinte des cartes reprend la convention suivie dans tout le projet : BLEU
+pour les sur-inclusions, ORANGE pour les oublis. L'effectif etant un comptage,
+l'echelle est decoupee en classes entieres et non en rampe continue.
 
-Les plages sont ORDONNEES, donc rendues par une seule teinte du clair au fonce,
-et non par des couleurs distinctes. La teinte reprend la convention suivie dans
-tout le projet : BLEU pour les sur-inclusions, ORANGE pour les oublis.
-
-RESERVE, valable pour les quatre figures. Le seuil est national, or l'enveloppe
+RESERVE, valable pour les deux cartes. Le seuil est national, or l'enveloppe
 d'education prioritaire a ete repartie par academie avant que les recteurs ne
 designent les etablissements. Une part de ces ecarts est donc arithmetiquement
 forcee, dans les deux sens : une academie comptant moins de colleges sous le
@@ -62,31 +59,22 @@ TOP_N = 50
 SEUIL_NATIONAL = 88.80
 
 # Bornes inferieure et superieure, et libelle. La derniere plage est ouverte.
-# Une quatrieme plage, sous 10 points, est necessaire : a effectif fixe, le bas
-# du top descend en dessous du seuil de 10 points retenu auparavant.
+# Les plages ne sont plus tracees ; elles restent utilisees par le recapitulatif
+# imprime en console et par la colonne `plage` du CSV exporte.
 PLAGES = [(0.0, 10.0, "moins de 10 points"),
           (10.0, 15.0, "10 à 15 points"),
           (15.0, 20.0, "15 à 20 points"),
           (20.0, np.inf, "plus de 20 points")]
 
-# Un reglage par type d'ecart. `teintes` sert aux plages du diagramme,
-# `teintes_carte` aux classes d'effectif de la carte : deux rampes distinctes,
-# car la carte compte des colleges quand le diagramme mesure des points d'IPS.
+# Un reglage par type d'ecart. `teintes_carte` donne les classes d'effectif de
+# la carte, du clair au fonce : l'effectif est une grandeur ordonnee.
 TYPES = {
     "sur-inclus": dict(
         radical="sur_inclusions",
-        teintes=["#cfdcf1", "#a8c4e8", "#5588cc", "#1f3b73"],
         teintes_carte=["#a8c4e8", "#5588cc", "#1f3b73", "#0b2350"],
         # A partir de cet effectif, le fond est assez sombre pour porter du
         # texte blanc. Les deux rampes ne s'assombrissent pas au meme rythme.
         texte_blanc_des=2,
-        titre_barres="Les 50 collèges classés dont l'IPS dépasse le plus le seuil",
-        sous_titre_barres=(
-            "Les {mini:.0f} plus gros écarts parmi les collèges publics classés REP "
-            "ou REP+ dont l'IPS dépasse celui de l'établissement qui ferme\n"
-            "l'enveloppe nationale ({seuil} points). Le cinquantième s'écarte de "
-            "7,7 points, le premier de 32,2."),
-        axe_barres="Nombre de collèges publics sur-inclus",
         titre_carte=("Où se trouvent les 50 collèges classés dont l'IPS\n"
                      "dépasse le plus le seuil national"),
         legende_carte="Collèges sur-inclus",
@@ -99,16 +87,8 @@ TYPES = {
     ),
     "oublie": dict(
         radical="oublis",
-        teintes=["#fbe0d2", "#f6c5ac", "#ee8e56", "#c9551d"],
         teintes_carte=["#f6c5ac", "#ee8e56", "#c9551d", "#7a2f0e"],
         texte_blanc_des=3,
-        titre_barres="Les 50 collèges non classés dont l'IPS est le plus sous le seuil",
-        sous_titre_barres=(
-            "Les {mini:.0f} plus gros écarts parmi les collèges publics classés ni "
-            "REP ni REP+ dont l'IPS est inférieur à celui de l'établissement qui\n"
-            "ferme l'enveloppe nationale ({seuil} points). Le cinquantième s'écarte "
-            "de 5,7 points, le premier de 17,4."),
-        axe_barres="Nombre de collèges publics non classés",
         titre_carte=("Où se trouvent les 50 collèges non classés dont l'IPS\n"
                      "est le plus sous le seuil national"),
         legende_carte="Collèges oubliés",
@@ -121,15 +101,8 @@ TYPES = {
     ),
 }
 
-ENCRE_2, GRILLE, GRIS_ABSENT = "#52514e", "#e1e0d9", "#eeeeee"
+ENCRE_2, GRIS_ABSENT = "#52514e", "#eeeeee"
 
-RESERVE = ("Champ : collèges publics, rentrée 2024-2025. L'IPS n'est pas le critère "
-           "officiel de classement : un écart mesure un désaccord entre deux "
-           "instruments, pas une erreur administrative.\n"
-           "Sources : DEPP (IPS), annuaire de l'éducation.")
-
-# Version courte pour les cartes, dont la largeur utile est moindre que celle
-# des diagrammes : la ligne complete y deborderait du cadre.
 RESERVE_CARTE = ("Champ : collèges publics, rentrée 2024-2025. L'IPS n'est pas le "
                  "critère officiel de classement.\n"
                  "Sources : DEPP (IPS), annuaire de l'éducation, contours "
@@ -171,75 +144,6 @@ def charger(type_ecart: str) -> pd.DataFrame:
         labels=[libelle for _, _, libelle in PLAGES],
         right=False)  # borne basse incluse : 15,0 va dans "15 a 20"
     return sous
-
-
-def mention_plages_vides(table: pd.DataFrame) -> str:
-    """Signale explicitement les plages sans aucun etablissement.
-
-    Une tranche vide se lit mal sur une legende : rien ne distingue "aucun cas"
-    de "plage oubliee par l'auteur". On l'ecrit donc en toutes lettres.
-    """
-    vides = [libelle for _, _, libelle in PLAGES if table[libelle].sum() == 0]
-    if not vides:
-        return ""
-    if len(vides) == 1:
-        return (f"Aucun collège n'atteint la tranche « {vides[0]} » : elle figure "
-                f"dans la légende mais reste vide.\n")
-    return (f"Aucun collège n'atteint ces tranches, qui figurent dans la légende "
-            f"mais restent vides : {', '.join(vides)}.\n")
-
-
-def figure_academies(sous: pd.DataFrame, reglage: dict) -> None:
-    """Barres empilees : effectif par academie, decoupe par plage d'ecart."""
-    table = (pd.crosstab(sous["academie"], sous["plage"])
-             .reindex(columns=[libelle for _, _, libelle in PLAGES], fill_value=0))
-    table["total"] = table.sum(axis=1)
-    table = table.sort_values("total")  # barh empile du bas vers le haut
-
-    fig, ax = plt.subplots(figsize=(10, 0.46 * len(table) + 3.0))
-    fig.subplots_adjust(left=0.20, right=0.97, top=0.855, bottom=0.185)
-
-    gauche = np.zeros(len(table))
-    for (_, _, libelle), couleur in zip(PLAGES, reglage["teintes"]):
-        ax.barh(table.index, table[libelle], left=gauche, color=couleur,
-                height=0.72, label=libelle, linewidth=0)
-        gauche += table[libelle].to_numpy()
-
-    for y, total in enumerate(table["total"]):
-        ax.annotate(str(int(total)), xy=(total, y), xytext=(5, 0),
-                    textcoords="offset points", va="center", fontsize=8.5,
-                    color=ENCRE_2, fontweight="bold")
-
-    ax.set_xlim(0, table["total"].max() * 1.18)
-    # Marge verticale resserree : la marge par defaut de matplotlib laisse une
-    # bande vide au-dessus du premier barreau et sous le dernier.
-    ax.set_ylim(-0.75, len(table) - 0.25)
-    ax.set_xlabel(reglage["axe_barres"], fontsize=9)
-    ax.tick_params(axis="y", labelsize=9)
-    ax.legend(frameon=False, fontsize=8.5, loc="lower right",
-              title="Écart d'IPS au seuil national", title_fontsize=8.5)
-    ax.grid(True, axis="x", linewidth=0.4, color=GRILLE)
-    ax.set_axisbelow(True)
-    for bord in ["top", "right", "left"]:
-        ax.spines[bord].set_visible(False)
-
-    fig.suptitle(reglage["titre_barres"], fontsize=13, fontweight="bold",
-                 x=0.02, ha="left", y=0.975)
-    fig.text(0.02, 0.945,
-             reglage["sous_titre_barres"].format(
-                 mini=TOP_N,
-                 # Separateur decimal francais : "88,80" et non "88.80".
-                 seuil=f"{SEUIL_NATIONAL:.2f}".replace(".", ",")),
-             fontsize=8.5, va="top", color=ENCRE_2)
-    fig.text(0.02, 0.098,
-             mention_plages_vides(table) + reglage["contrainte"] + "\n" + RESERVE,
-             fontsize=7.5, va="top", color=ENCRE_2)
-
-    FIGURES.mkdir(parents=True, exist_ok=True)
-    chemin = FIGURES / f"{reglage['radical']}_academies.png"
-    fig.savefig(chemin, dpi=200, facecolor="white")
-    plt.close(fig)
-    print(f"  [+] {chemin.name}")
 
 
 def classes_effectif(maximum: int, reglage: dict) -> tuple:
@@ -343,8 +247,7 @@ def main() -> None:
         print("\n--- par departement ---")
         print(dep.to_string(index=False))
 
-        print("\nFigures :")
-        figure_academies(sous, reglage)
+        print("\nFigure :")
         figure_departements(sous, contours, reglage)
 
         chemin = DOSSIER_TABLES / f"{reglage['radical']}_forts.csv"
