@@ -87,15 +87,21 @@ l'IPS.
 |---|---|---|---|
 | IPS des collèges | data.education.gouv.fr — `fr-en-ips-colleges-ap2023` | 21 061 | 2023-24, 2024-25, 2025-26 |
 | Annuaire de l'éducation | data.education.gouv.fr — `fr-en-annuaire-education` | 68 581 | millésime courant |
+| Indicateurs de valeur ajoutée des collèges | data.education.gouv.fr — `fr-en-indicateurs-valeur-ajoutee-colleges` | 26 869 | sessions 2022 à 2025 |
 
-*Effectifs relevés le 22 septembre 2026.*
+*Effectifs relevés le 22 septembre 2026, sauf l'IVAC, relevé le 29 septembre 2026.*
 
-**Deux points méthodologiques :**
+**Trois points méthodologiques :**
 
 1. Le fichier IPS couvre trois rentrées scolaires. On retient la rentrée **2024-2025**, la plus récente pour
    laquelle l'annuaire et le fichier IPS concordent.
 
 2. La jointure avec l'annuaire se fait sur le code UAI nommé `uai` qui est le l'identifiant unique de chaque établissement.
+
+3. Le brevet se passe en fin d'année scolaire : la rentrée 2024-2025 correspond à la
+   **session 2025** du DNB. Retenir la session 2024 décalerait la mesure d'une année
+   entière sans qu'aucun contrôle ne le signale — les deux fichiers s'apparient
+   parfaitement sur l'UAI dans les deux cas.
 
 ---
 
@@ -113,6 +119,7 @@ uv run python -m src.distribution_ips
 uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
 uv run python -m src.carte_enveloppe
+uv run python -m src.comparaison_etalons
 ```
 
 `uv sync` installe Python 3.12 et les dépendances aux versions exactes figées dans
@@ -121,8 +128,8 @@ uv run python -m src.carte_enveloppe
 
 | Module | Rôle |
 |---|---|
-| `src/download.py` | télécharge les deux jeux de données bruts |
-| `src/preparation.py` | nettoie, joint, contrôle les biais d'exclusion |
+| `src/download.py` | télécharge les trois jeux de données bruts |
+| `src/preparation.py` | nettoie, joint IPS, annuaire et résultats au DNB, contrôle les biais d'exclusion |
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | fond de carte partagé : contours, DROM rapprochés, annotations |
 | `src/score_ecart.py` | score d'écart d'IPS par collège, aux seuils national et académique |
@@ -130,6 +137,7 @@ uv run python -m src.carte_enveloppe
 | `src/distribution_ecart.py` | distribution de l'écart au seuil, en points d'IPS, et sa répartition par plage |
 | `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
 | `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus défavorisés |
+| `src/comparaison_etalons.py` | confronte l'IPS et les résultats au DNB comme étalons de ciblage |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -153,7 +161,7 @@ outputs/tables/    tableaux de résultats
 
 ### Construction du fichier d'analyse
 
-`src/preparation.py` part des deux fichiers bruts et produit
+`src/preparation.py` part des trois fichiers bruts et produit
 `data/processed/colleges_2024_2025.csv` : une ligne par collège.
 
 | Étape | Effet |
@@ -167,6 +175,14 @@ outputs/tables/    tableaux de résultats
 Les 6 974 collèges retenus disposent tous de coordonnées géographiques. Le taux de
 perte est ici de **0,2 %** : la confrontation IPS / annuaire est quasi intégrale au
 niveau du collège.
+
+La jointure avec les résultats au DNB vient **après** ces exclusions et n'en ajoute
+aucune : 164 collèges (2,4 %) n'ont pas de résultat publié, mais ils conservent leur
+IPS et leur statut. Ils ne sortent que des analyses qui ont besoin de la note — les
+supprimer ici réduirait le champ de tout le projet pour les besoins d'un seul module.
+Ces 164 collèges ne sont **pas absents au hasard** : seuls **3,7 %** d'entre eux sont
+classés en éducation prioritaire, contre 15,7 % sur l'ensemble. La comparaison des
+étalons porte donc sur 5 271 des 5 325 collèges publics.
 
 ## Le score d'écart d'IPS
 
@@ -281,6 +297,57 @@ de 1, une autre le perd.
 critère officiel, un écart signale un désaccord entre deux instruments — et non une
 erreur administrative.*
 
+---
+
+## Deux étalons pour la même carte
+
+Tout ce qui précède repose sur un étalon unique : l'IPS. Une objection s'impose — le
+résultat tiendrait-il avec une autre mesure du besoin ? On en introduit donc une
+seconde, la **note moyenne à l'écrit du DNB** (session 2025), et on applique la même
+mécanique : chaque étalon désigne les collèges les plus bas de son classement, à
+enveloppe strictement identique.
+
+Le choix de la note plutôt que du taux de réussite est technique : le taux ne prend
+que **53 valeurs distinctes** sur 5 300 collèges et sature vers le haut — un tiers
+des établissements au-dessus de 95 % — là où la note en prend 102 et se répartit
+sans butée.
+
+La **valeur ajoutée** publiée par l'IVAC, elle, a été écartée, et la raison mérite
+d'être comprise : elle mesure l'écart au résultat *attendu compte tenu du public
+accueilli*, donc elle a déjà neutralisé la composition sociale — précisément ce que
+l'éducation prioritaire cible. Les REP+ y occupent le **76ᵉ percentile** : ils font
+mieux qu'attendu. Classer sur la valeur ajoutée la plus faible en ferait les collèges
+les moins éligibles, et l'étude conclurait mécaniquement à un ciblage inversé. Ce
+serait un artefact de l'indicateur, pas un résultat.
+
+![Comparaison des deux étalons : IPS et résultats au DNB](outputs/figures/comparaison_etalons.png)
+
+**Commentaire à ajouter moi meme**
+
+![Où les deux étalons se contredisent](outputs/figures/desaccord_etalons.png)
+
+**Commentaire à ajouter moi meme**
+
+### La réserve qui commande toute la lecture
+
+**L'IPS se mesure en amont de la politique ; les résultats au DNB, en aval.** Il est
+construit sur les PCS déclarées par les familles, que le classement en REP ne déplace
+pas. La note, si : un collège en REP+ dispose de moyens supplémentaires, et son
+résultat en porte la trace. Classer sur une grandeur que la politique elle-même
+déplace, c'est boucler.
+
+La conséquence est qu'un collège qui ne se distingue plus par ses résultats peut
+aussi bien n'avoir jamais eu besoin d'aide qu'avoir été aidé efficacement. **Rien
+ici ne permet de trancher.** Cette section compare deux instruments de ciblage ;
+elle n'évalue pas l'efficacité du dispositif, et aucun des deux étalons n'a raison
+contre l'autre.
+
+Second point de prudence, propre à cet étalon : là où **11 collèges** seulement
+partagent la valeur exacte du seuil d'IPS, ils sont **91** sur la note. Pour
+ceux-là, l'appartenance aux dernières places tient à l'ordre de tri et non à la
+donnée. Ils sont marqués `frontiere_note` dans le fichier de sortie et ne sont pas
+départagés par l'IPS — ce qui reviendrait à contaminer un étalon par l'autre.
+
 ## Limites
 
 ### Ce que mesure l'indicateur
@@ -291,8 +358,11 @@ recommande de ne pas interpréter des différences de 3 points ou moins : les
 classements fins entre établissements ou entre départements proches n'ont pas de
 sens.
 
-**L'IPS ne dit rien des résultats scolaires.** Ce travail porte sur la composition
-sociale des collèges, jamais sur leur performance.
+**L'IPS ne dit rien des résultats scolaires.** L'essentiel de ce travail porte sur la
+composition sociale des collèges, pas sur leur performance. La section « Deux étalons
+pour la même carte » introduit les résultats au DNB, mais uniquement comme second
+instrument de *ciblage* — jamais comme mesure de l'efficacité du dispositif, ce que
+la nature endogène de la variable interdit.
 
 ### Le champ retenu
 
@@ -396,6 +466,7 @@ degré, qui pèsent pourtant lourd dans la critique de la carte.
 
 - [IPS des collèges](https://data.education.gouv.fr/explore/dataset/fr-en-ips-colleges-ap2023/) — DEPP
 - [Annuaire de l'éducation](https://data.education.gouv.fr/explore/dataset/fr-en-annuaire-education/) — ministère chargé de l'Éducation nationale
+- [Indicateurs de valeur ajoutée des collèges (IVAC)](https://data.education.gouv.fr/explore/dataset/fr-en-indicateurs-valeur-ajoutee-colleges/) — DEPP
 - Contours départementaux : [cartiflette](https://github.com/InseeFrLab/cartiflette), laboratoire d'innovation de l'Insee, d'après IGN ADMIN EXPRESS
 
 **Construction et critique du classement REP / REP+**

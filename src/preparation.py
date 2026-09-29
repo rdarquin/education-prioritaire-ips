@@ -1,7 +1,8 @@
 """Nettoyage des donnees brutes et construction du fichier d'analyse.
 
 Produit `data/processed/colleges_2024_2025.csv` : une ligne par college, avec
-son IPS, son statut d'education prioritaire et ses coordonnees geographiques.
+son IPS, sa note moyenne a l'ecrit du DNB, son statut d'education prioritaire
+et ses coordonnees geographiques.
 
 Le module affiche ses diagnostics au fur et a mesure. Ce n'est pas du
 bavardage : chaque chiffre imprime ici documente une decision de nettoyage,
@@ -13,9 +14,10 @@ Lancement (depuis la racine du projet) :
 
 import pandas as pd
 
-from src.config import DATA_PROCESSED, DATA_RAW, RENTREE_REFERENCE
+from src.config import (DATA_PROCESSED, DATA_RAW, RENTREE_REFERENCE,
+                        SESSION_DNB)
 
-# Parametres de lecture communs aux deux fichiers.
+# Parametres de lecture communs aux trois fichiers.
 #   sep=";"                 : convention Opendatasoft
 #   encoding="utf-8-sig"    : neutralise le BOM en tete de fichier, sans quoi
 #                             la premiere colonne s'appellerait "﻿rentree_scolaire"
@@ -97,6 +99,93 @@ def charger_annuaire() -> pd.DataFrame:
     return ann.drop(columns=["appartenance_education_prioritaire"])
 
 
+def charger_ivac() -> pd.DataFrame:
+    """Charge les resultats au DNB et les filtre sur la session de reference.
+
+    On retient la NOTE MOYENNE A L'ECRIT de la serie generale, et non le taux
+    de reussite. Deux raisons :
+
+      - le taux de reussite est ecrase vers le haut — mediane a 88 %, un tiers
+        des colleges au-dessus de 95 % — et ne prend que 53 valeurs distinctes
+        sur 5 300 colleges. Il ne distingue plus rien dans le haut de la
+        distribution ;
+      - la note en prend 102, et se repartit sans butee.
+
+    Serie generale (`_g`) et non professionnelle (`_p`) : cette derniere ne
+    concerne au college que les eleves de SEGPA, presents dans une minorite
+    d'etablissements. La retenir ferait porter la comparaison sur des
+    populations de tailles tres inegales.
+
+    Returns:
+        Un DataFrame a une ligne par college : UAI, note, nombre de candidats.
+    """
+    df = pd.read_csv(DATA_RAW / "ivac_colleges.csv", **LECTURE_CSV)
+    total = len(df)
+
+    # Comme le fichier IPS, l'IVAC est un panel : quatre sessions empilees.
+    df = df[df["session"] == SESSION_DNB].copy()
+
+    print(f"  ivac_colleges.csv    {total:6d} lignes -> {len(df):6d} "
+          f"pour la session {SESSION_DNB}")
+
+    doublons = df["uai"].duplicated().sum()
+    if doublons:
+        raise ValueError(f"{doublons} UAI en double dans l'IVAC : la jointure "
+                         f"dupliquerait des lignes.")
+
+    df = df.rename(columns={"note_a_l_ecrit_g": "note_ecrit_dnb",
+                            "nb_candidats_g": "nb_candidats_dnb"})
+    return df[["uai", "note_ecrit_dnb", "nb_candidats_dnb"]]
+
+
+def ajouter_performance(df: pd.DataFrame, ivac: pd.DataFrame) -> pd.DataFrame:
+    """Joint les resultats au DNB et mesure ce que la jointure laisse de cote.
+
+    La jointure est volontairement "left" : un college sans resultat au DNB
+    reste dans le fichier, avec une note manquante. Il conserve son IPS et son
+    statut, et ne sort donc que des analyses qui ont besoin de la note. Le
+    supprimer ici reduirait le champ de TOUT le projet pour les besoins d'un
+    seul module.
+
+    Args:
+        df: la table des colleges, deja jointe a l'annuaire.
+        ivac: les resultats au DNB de la session de reference.
+
+    Returns:
+        La meme table, augmentee de `note_ecrit_dnb` et `nb_candidats_dnb`.
+    """
+    df = df.merge(ivac, on="uai", how="left", validate="one_to_one")
+
+    df["note_ecrit_dnb"] = pd.to_numeric(df["note_ecrit_dnb"], errors="coerce")
+    df["nb_candidats_dnb"] = pd.to_numeric(df["nb_candidats_dnb"],
+                                           errors="coerce")
+
+    sans_note = df["note_ecrit_dnb"].isna()
+    print(f"\n  sans resultat au DNB : {sans_note.sum()} "
+          f"({100 * sans_note.mean():.1f}%)")
+
+    # Meme verification que pour les IPS non publies : ces colleges sortiront
+    # de la comparaison des etalons, et il faut savoir si leur depart la
+    # deplace. Un ecart marque signalerait que la note n'est pas absente au
+    # hasard — typiquement, de tres petits etablissements.
+    if sans_note.any():
+        part_ep = 100 * (df.loc[sans_note, "ep"] != "hors EP").mean()
+        part_ep_globale = 100 * (df["ep"] != "hors EP").mean()
+        ips_absents = df.loc[sans_note, "ips"].mean()
+        print(f"    part en education prioritaire : {part_ep:.1f}% "
+              f"(contre {part_ep_globale:.1f}% sur l'ensemble)")
+        print(f"    IPS moyen : {ips_absents:.1f} "
+              f"(contre {df['ips'].mean():.1f} sur l'ensemble)")
+
+    # Une note assise sur une poignee de candidats est volatile : un eleve de
+    # plus ou de moins la deplace sensiblement. On mesure combien de colleges
+    # sont dans ce cas, pour que les modules en aval puissent en tenir compte.
+    petits = df["nb_candidats_dnb"] < 30
+    print(f"    moins de 30 candidats : {petits.sum()} colleges")
+
+    return df
+
+
 def joindre_et_diagnostiquer(ips: pd.DataFrame, annuaire: pd.DataFrame) -> pd.DataFrame:
     """Apparie IPS et annuaire, mesure les pertes, puis applique les exclusions.
 
@@ -175,25 +264,29 @@ def finaliser(df: pd.DataFrame) -> pd.DataFrame:
     })
 
     colonnes = ["uai", "nom", "secteur", "ep", "ips", "ecart_type_ips",
+                "note_ecrit_dnb", "nb_candidats_dnb",
                 "code_commune", "nom_commune", "code_departement", "departement",
                 "code_academie", "academie", "latitude", "longitude"]
     return df[colonnes].sort_values("uai").reset_index(drop=True)
 
 
 def main() -> None:
-    """Construit le fichier d'analyse a partir des deux fichiers bruts."""
+    """Construit le fichier d'analyse a partir des trois fichiers bruts."""
     print(f"Rentree de reference : {RENTREE_REFERENCE}\n")
 
     print("Lecture :")
     ips = charger_ips()
     annuaire = charger_annuaire()
+    ivac = charger_ivac()
 
     df = joindre_et_diagnostiquer(ips, annuaire)
+    df = ajouter_performance(df, ivac)
     df = finaliser(df)
 
     print("\nResultat :")
     print(df.groupby(["secteur", "ep"]).agg(
-        effectif=("ips", "size"), ips_moyen=("ips", "mean")
+        effectif=("ips", "size"), ips_moyen=("ips", "mean"),
+        note_dnb_moyenne=("note_ecrit_dnb", "mean")
     ).round(1).to_string())
 
     FICHIER_SORTIE.parent.mkdir(parents=True, exist_ok=True)
