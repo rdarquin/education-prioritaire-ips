@@ -120,6 +120,7 @@ uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
 uv run python -m src.carte_enveloppe
 uv run python -m src.ratios_enveloppe
+uv run python -m src.niveau_academies
 ```
 
 Chaque module de figures produit **deux versions de chaque visuel** : une sur l'IPS,
@@ -142,7 +143,9 @@ une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le
 | `src/distribution_ecart.py` | distribution de l'écart au seuil et sa répartition par plage |
 | `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
 | `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus bas |
-| `src/ratios_enveloppe.py` | les ratios des deux étalons face à face, académie par académie : haltères et nuage |
+| `src/etiquettes.py` | placement des étiquettes sur un nuage de points, par positions candidates |
+| `src/ratios_enveloppe.py` | nuage des ratios d'enveloppe des deux étalons, académie par académie |
+| `src/niveau_academies.py` | nuage du niveau moyen à l'entrée en 6ᵉ contre l'IPS moyen, par académie |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -339,22 +342,23 @@ de 1, une autre le perd.
 #### Les deux étalons donnent-ils le même diagnostic ?
 
 Les deux cartes ci-dessus ne se comparent pas facilement : on ne lit pas un déplacement
-en confrontant deux teintes sur deux fonds distincts. La figure suivante met donc les
-deux ratios face à face, une ligne par académie, et c'est le **segment qui les relie**
-qui porte l'information.
+en confrontant deux teintes sur deux fonds distincts. Le nuage suivant met les deux
+ratios face à face. La **diagonale** est la lecture principale — un point dessus signifie
+que les deux étalons s'accordent exactement, et la distance à la diagonale mesure leur
+désaccord. La surface du point donne le **poids** de l'académie : un ratio de 0,75 sur
+118 places (Lille) ne pèse pas comme un ratio de 1,40 sur 7 places (Limoges).
 
-![Ratio d'enveloppe de chaque académie sous les deux étalons](outputs/figures/ratios_enveloppe_etalons.png)
+![Nuage des deux ratios d'enveloppe par académie](outputs/figures/nuage_ratios_etalons.png)
 
 **Commentaire à ajouter moi meme**
 
-Le nuage qui suit porte les mêmes données autrement. Il ajoute deux choses que les
-haltères ne peuvent pas montrer : la **diagonale**, sur laquelle un point signifie que
-les deux étalons s'accordent exactement, et le **poids** de chaque académie — la surface
-du point est proportionnelle à son enveloppe. Un ratio de 0,75 sur 118 places (Lille)
-ne pèse pas comme un ratio de 1,40 sur 7 places (Limoges), ce que les haltères
-traitaient à égalité.
+### Le niveau à l'entrée en 6ᵉ suit-il l'IPS de l'académie ?
 
-![Nuage des deux ratios d'enveloppe par académie](outputs/figures/nuage_ratios_etalons.png)
+Les deux étalons mesurent deux choses distinctes — un milieu social et un niveau
+scolaire — et la figure précédente montre qu'ils ne désignent pas les mêmes académies.
+Reste à regarder leur relation directe, à l'échelle agrégée.
+
+![Niveau moyen à l'entrée en 6e et IPS moyen, par académie](outputs/figures/niveau_ips_academies.png)
 
 **Commentaire à ajouter moi meme**
 
