@@ -121,6 +121,7 @@ uv run python -m src.ecarts_extremes
 uv run python -m src.carte_enveloppe
 uv run python -m src.ratios_enveloppe
 uv run python -m src.niveau_academies
+uv run python -m src.rep_plus
 ```
 
 Chaque module de figures produit **deux versions de chaque visuel** : une sur l'IPS,
@@ -146,6 +147,7 @@ une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le
 | `src/etiquettes.py` | placement des étiquettes sur un nuage de points, par positions candidates |
 | `src/ratios_enveloppe.py` | nuage des ratios d'enveloppe des deux étalons, académie par académie |
 | `src/niveau_academies.py` | nuage du niveau moyen à l'entrée en 6ᵉ contre l'IPS moyen, par académie |
+| `src/rep_plus.py` | second volet : même mécanique sur la seule enveloppe REP+ |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -365,6 +367,54 @@ Reste à regarder leur relation directe, à l'échelle agrégée.
 *Cette mesure compare la carte réelle à un classement par IPS. L'IPS n'étant pas le
 critère officiel, un écart signale un désaccord entre deux instruments — et non une
 erreur administrative.*
+
+---
+
+## Et si l'on ne regardait que REP+ ?
+
+Tout ce qui précède traite l'éducation prioritaire comme un bloc : 1 094 collèges
+classés, REP et REP+ confondus. Ce second volet réduit l'enveloppe aux **362 places
+REP+** et repose exactement la même question. La mécanique ne change pas d'une ligne —
+seule la définition de « classé » change.
+
+Le seuil devient plus sélectif : **77,80 points d'IPS** au lieu de 88,80, avec 5 ex
+æquo seulement contre 11. Techniquement, l'instrument se comporte même mieux sur ce
+périmètre plus étroit.
+
+| | REP+ et REP | **REP+ seul** |
+|---|---:|---:|
+| Places | 1 094 | **362** |
+| Seuil d'IPS | 88,80 | **77,80** |
+| Collèges bien placés | 76,8 % | **72,1 %** |
+| Écarts de chaque côté | 254 | **101** |
+
+![Distribution de l'écart au seuil REP+, les deux étalons](outputs/figures/rep_plus_ecart.png)
+
+**Commentaire à ajouter moi meme**
+
+### Le mot « oubli » ne veut plus dire la même chose
+
+C'est le résultat propre à ce volet, et il faut le lire avant tout le reste.
+
+**Sur les 101 collèges que l'IPS désigne sans que REP+ les retienne, 90 sont déjà
+classés REP.** Onze seulement sont hors éducation prioritaire.
+
+Un « oubli » ne signifie donc presque jamais que l'État n'a rien fait : il signifie
+qu'il a mis **REP là où l'IPS dirait REP+**. On passe d'une question de **couverture**
+— qui est aidé, qui ne l'est pas — à une question de **graduation** — qui est aidé au
+bon niveau. Les deux cas sont distingués par la couleur sur la figure, sans quoi le mot
+serait trompeur pour un lecteur venant de la première partie.
+
+Avec le score de 6ᵉ, le décalage est plus marqué : 51,7 % de collèges bien placés
+seulement, 168 oublis dont **48 hors éducation prioritaire**.
+
+### Pourquoi pas de variante académique ici
+
+Le reste du projet calcule tout deux fois, au seuil national et au seuil académique.
+Sur REP+ la seconde n'a pas de sens : **onze académies comptent moins de cinq REP+, et
+trois n'en comptent qu'un** — Dijon, Rennes, la Corse. Un seuil budgétaire calculé sur
+une seule place, et un ratio d'enveloppe qui en découlerait, ne mesureraient que le
+hasard du collège concerné.
 
 ## Limites
 
