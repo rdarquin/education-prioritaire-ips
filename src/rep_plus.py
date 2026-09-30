@@ -43,11 +43,16 @@ import matplotlib
 
 matplotlib.use("Agg")  # backend sans fenetre : on ecrit des fichiers
 
+import textwrap
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from matplotlib.colors import BoundaryNorm, ListedColormap
+
 from src.analyse import charger, restreindre_au_public
+from src.cartographie import annoter_drom, charger_contours
 from src.config import FIGURES, PROJECT_ROOT
 from src.etalons import ETALONS
 from src.score_ecart import ajouter_score, controler_identite
@@ -56,6 +61,13 @@ DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
 BLEU, ORANGE, ORANGE_CLAIR = "#1f3b73", "#eb6834", "#f2a888"
 ENCRE, ENCRE_2, MUET, GRILLE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9"
+GRIS_ABSENT = "#e3e3e3"
+
+# Rampes des cartes, du clair au fonce. Une seule teinte par carte : l'effectif
+# est une grandeur d'intensite, une palette categorielle suggererait des
+# categories qui n'existent pas.
+BLEUS = ["#dce6f5", "#9ec4ee", "#5588cc", "#1f3b73", "#132548"]
+ORANGES = ["#fbe3d5", "#f2a888", "#eb6834", "#a8401a", "#6b280f"]
 
 # Largeur de classe de l'histogramme, par etalon : l'IPS s'etale sur une
 # centaine de points, le score de sixieme sur plusieurs centaines.
@@ -249,6 +261,147 @@ def figure(donnees: dict) -> None:
     print(f"\n[+] {chemin.name}")
 
 
+def classes_effectif(maximum: int, teintes: list[str]) -> tuple:
+    """Bornes, couleurs et etiquettes d'une echelle de comptage.
+
+    L'effectif est un entier : une rampe continue suggererait des valeurs
+    intermediaires qui n'existent pas. Les classes s'arretent au maximum
+    OBSERVE, sans quoi la legende annoncerait des categories vides.
+    """
+    paliers = [0.5, 1.5, 2.5, 3.5, 5.5]
+    bornes = np.array([b for b in paliers if b < maximum] + [maximum + 0.5])
+    couleurs = teintes[:len(bornes) - 1]
+
+    etiquettes, precedent = [], 1
+    for borne in bornes[1:-1]:
+        haut = int(borne - 0.5)
+        etiquettes.append(f"{precedent}" if haut == precedent
+                          else f"{precedent} à {haut}")
+        precedent = haut + 1
+    etiquettes.append(f"{precedent}" if maximum == precedent
+                      else f"{precedent} à {maximum}")
+    return bornes, couleurs, [f"{e} collège" + ("s" if e != "1" else "")
+                              for e in etiquettes]
+
+
+def carte(ax, sous: pd.DataFrame, contours, teintes: list[str], titre: str,
+          signales=None) -> tuple[int, int]:
+    """Choroplethe departementale d'un effectif, chiffre inscrit sur la carte.
+
+    Args:
+        signales: sous-ensemble dont les departements recoivent un contour
+            appuye. Sert ici a designer les departements comptant au moins un
+            oubli HORS education prioritaire — l'information propre a ce volet.
+
+    Returns:
+        Le total et le nombre de departements concernes, pour la note.
+    """
+    par_dep = sous.groupby("code_departement").size().rename("effectif")
+    gdf = contours.join(par_dep, how="left")
+    gdf["effectif"] = gdf["effectif"].fillna(0)
+
+    concernes = gdf["effectif"] > 0
+    maximum = int(gdf["effectif"].max())
+    bornes, couleurs, etiquettes = classes_effectif(maximum, teintes)
+    cmap = ListedColormap(couleurs)
+    norme = BoundaryNorm(bornes, ncolors=cmap.N)
+
+    gdf.plot(ax=ax, color=GRIS_ABSENT, edgecolor="white", linewidth=0.4)
+    gdf[concernes].plot(ax=ax, column="effectif", cmap=cmap, norm=norme,
+                        edgecolor="white", linewidth=0.4)
+
+    if signales is not None and len(signales):
+        marques = gdf.index.isin(signales["code_departement"].unique())
+        gdf[marques].plot(ax=ax, facecolor="none", edgecolor=ENCRE,
+                          linewidth=1.6, zorder=4)
+
+    # Le chiffre est ecrit sur le departement. Le blanc devient illisible sur
+    # les teintes claires : la couleur du texte suit l'intensite du fond.
+    seuil_blanc = bornes[max(len(bornes) - 3, 1)]
+    for _, ligne in gdf[concernes].iterrows():
+        point = ligne["geometry"].representative_point()
+        effectif = int(ligne["effectif"])
+        ax.annotate(str(effectif), xy=(point.x, point.y), ha="center",
+                    va="center", fontsize=7.5, fontweight="bold",
+                    color="white" if effectif >= seuil_blanc else ENCRE)
+
+    annoter_drom(ax, contours)
+    ax.set_axis_off()
+    ax.set_title(titre, fontsize=11.5, fontweight="bold", loc="left",
+                 color=ENCRE)
+
+    poignees = [plt.Rectangle((0, 0), 1, 1, color=c) for c in couleurs]
+    ax.legend(poignees, etiquettes, loc="upper right", frameon=False,
+              fontsize=8, title="Collèges du département", title_fontsize=8)
+    return int(gdf["effectif"].sum()), int(concernes.sum())
+
+
+def figure_cartes(df: pd.DataFrame, info: dict, contours) -> None:
+    """Ou se trouvent les ecarts a l'enveloppe REP+ ?"""
+    etalon = info["etalon"]
+    sur = df[df["categorie"] == "sur-inclus"]
+    oublis = df[df["type_ecart"] == "oublie"]
+    hors_ep = oublis[oublis["ep"] == "hors EP"]
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 9.6))
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.855, bottom=0.245,
+                        wspace=0.02)
+
+    n_sur, dep_sur = carte(axes[0], sur, contours, BLEUS,
+                           "Sur-inclusions — REP+ au-dessus du seuil")
+    n_oub, dep_oub = carte(axes[1], oublis, contours, ORANGES,
+                           "Oublis — sous le seuil sans être REP+",
+                           signales=hors_ep)
+
+    # La liste s'allonge avec l'etalon — neuf departements sur l'IPS, bien
+    # plus sur le score de sixieme — donc on la replie plutot que de la laisser
+    # deborder du cadre.
+    # "l'IPS" -> "L'IPS" : `capitalize` minusculerait le reste du mot.
+    avec = etalon["avec_article"]
+    sujet = avec[0].upper() + avec[1:]
+
+    departements = textwrap.fill(
+        "Départements concernés : "
+        + ", ".join(sorted(hors_ep["departement"].str.title().unique())) + ".",
+        width=150)
+
+    fig.suptitle(f"Où se trouvent les écarts à l'enveloppe REP+ ?\n"
+                 f"Étalon {etalon['libelle']}, collèges publics, "
+                 f"rentrée 2024-2025",
+                 fontsize=13.5, fontweight="bold", x=0.02, ha="left", y=0.975)
+
+    fig.text(0.02, 0.198,
+             f"À gauche, les {n_sur} collèges classés REP+ dont la valeur "
+             f"dépasse le seuil, répartis sur {dep_sur} départements. À droite, "
+             f"les {n_oub} collèges sous le seuil que REP+ ne retient pas, sur "
+             f"{dep_oub} départements.\n"
+             f"CONTOUR APPUYÉ à droite : les départements comptant au moins un "
+             f"oubli HORS éducation prioritaire — {len(hors_ep)} collèges en "
+             f"tout, dans {hors_ep['code_departement'].nunique()} départements. "
+             f"Partout ailleurs,\n"
+             f"les oublis sont des collèges DÉJÀ classés REP : l'écart porte sur "
+             f"le niveau d'aide, pas sur son existence.\n"
+             + departements + "\n"
+             "Les classes sont des effectifs entiers et non une rampe continue : "
+             "un département compte deux collèges ou trois, jamais deux et demi. "
+             "En gris, les départements sans aucun cas.\n"
+             "Les deux séries ont exactement le même effectif : un collège "
+             "sur-inclus prend la place d'un collège qui aurait dû l'être. C'est "
+             "une propriété du calcul, pas un résultat.\n"
+             f"{sujet} n'est pas le critère officiel de classement : "
+             "un écart mesure un désaccord entre deux instruments, pas une erreur "
+             "administrative.\n"
+             f"Sources : {etalon['source']}, annuaire de l'éducation, contours "
+             "Insee/cartiflette. DROM rapprochés, échelles et distances non "
+             "respectées.",
+             fontsize=7.5, va="top", color=ENCRE_2)
+
+    chemin = FIGURES / f"rep_plus_cartes_{info['cle']}.png"
+    fig.savefig(chemin, dpi=200, facecolor="white")
+    plt.close(fig)
+    print(f"[+] {chemin.name}")
+
+
 def main() -> None:
     donnees = {}
     for cle in ETALONS:
@@ -257,6 +410,12 @@ def main() -> None:
         donnees[cle] = (df, info)
 
     figure(donnees)
+
+    print("\nContours :")
+    contours = charger_contours("FRANCE_ENTIERE_DROM_RAPPROCHES")
+    print(f"  {len(contours)} departements")
+    for cle, (df, info) in donnees.items():
+        figure_cartes(df, info, contours)
 
     DOSSIER_TABLES.mkdir(parents=True, exist_ok=True)
     for cle, (df, _) in donnees.items():

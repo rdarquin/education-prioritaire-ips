@@ -408,6 +408,26 @@ serait trompeur pour un lecteur venant de la première partie.
 Avec le score de 6ᵉ, le décalage est plus marqué : 51,7 % de collèges bien placés
 seulement, 168 oublis dont **48 hors éducation prioritaire**.
 
+### Où se trouvent ces écarts
+
+Les deux cartes reprennent la lecture de la première partie, mais avec une
+information supplémentaire propre à ce volet : **le contour appuyé signale les
+départements comptant au moins un oubli hors éducation prioritaire**. Partout
+ailleurs, les oublis sont des collèges déjà classés REP.
+
+![Écarts à l'enveloppe REP+ par département, étalon IPS](outputs/figures/rep_plus_cartes_ips.png)
+
+**Commentaire à ajouter moi meme**
+
+Les onze oublis hors EP au sens de l'IPS se répartissent sur **neuf départements**
+seulement — Essonne, Gard, Hérault, Loire, Martinique, Moselle, Pas-de-Calais,
+Puy-de-Dôme, Pyrénées-Orientales. Avec le score de 6ᵉ, ils sont 48 dans 27
+départements.
+
+![Écarts à l'enveloppe REP+ par département, étalon score de 6e](outputs/figures/rep_plus_cartes_eval6.png)
+
+**Commentaire à ajouter moi meme**
+
 ### Pourquoi pas de variante académique ici
 
 Le reste du projet calcule tout deux fois, au seuil national et au seuil académique.
