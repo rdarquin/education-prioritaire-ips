@@ -70,6 +70,14 @@ GRADUATIONS = [0.5, 0.67, 0.8, 1.0, 1.25, 1.5, 2.0, 3.0, 5.0]
 # sur trop peu d'observations : l'academie est signalee d'un asterisque.
 SEUIL_FRAGILE = 10
 
+# Au-dela de ce ratio, une academie sort du cadre du NUAGE. Elle y etirerait
+# l'echelle jusqu'a six et tasserait les vingt-huit autres dans un coin. Deux
+# academies sont concernees a ce jour — la Corse et Paris, toutes deux autour
+# de cinq — et elles sont signalees dans la figure avec leurs valeurs, jamais
+# passees sous silence. Le graphe en halteres, lui, les garde : son echelle
+# unique les absorbe sans ecraser le reste.
+SEUIL_HORS_CADRE = 2.5
+
 
 def charger() -> pd.DataFrame:
     """Reunit les ratios des deux etalons en une ligne par academie."""
@@ -378,9 +386,30 @@ def figure_nuage(t: pd.DataFrame) -> None:
     haut a droite, les deux etalons s'accordent sur le SENS. Dans les deux
     autres quadrants ils se contredisent, et ce sont les quinze academies
     surlignees de la figure precedente.
+
+    LE CADRAGE
+
+    Deux academies ont un ratio proche de cinq dans les deux etalons — la Corse
+    et Paris, dont l'ensemble optimal ne compte que deux et six colleges. Les
+    inclure dans le cadre etirait l'echelle jusqu'a six et tassait les
+    vingt-huit autres dans le quart inferieur gauche, ou plus rien ne se
+    distinguait.
+
+    Elles sont donc HORS CADRE, et signalees comme telles dans le coin
+    superieur droit, avec leurs valeurs. Les omettre en silence serait
+    malhonnete : le lecteur doit savoir que le nuage n'est pas complet, et que
+    ces deux academies sont exactement sur la diagonale — les deux etalons
+    s'accordent sur elles.
     """
     a, b = list(ETALONS)
     ra, rb = f"ratio_enveloppe_{a}", f"ratio_enveloppe_{b}"
+
+    # Le cadre est deduit des academies NON extremes, puis les extremes sont
+    # renvoyees dans la note du coin. Le critere porte sur la donnee et non sur
+    # une liste de noms : si la Corse rentrait dans le rang une annee, le
+    # cadrage suivrait sans qu'on y touche.
+    extreme = (t[[ra, rb]].max(axis=1) > SEUIL_HORS_CADRE).to_numpy()
+    cadrees, hors = t[~extreme], t[extreme]
 
     x, y = np.log2(t[ra].to_numpy()), np.log2(t[rb].to_numpy())
     places = t[f"classes_{a}"].to_numpy()
@@ -396,39 +425,73 @@ def figure_nuage(t: pd.DataFrame) -> None:
         ~t["change_de_cote"], MUET,
         np.where(t[ra] > 1, BLEU, ORANGE))
 
-    fig, ax = plt.subplots(figsize=(12.8, 13.2))
-    fig.subplots_adjust(left=0.075, right=0.978, top=0.878, bottom=0.188)
+    fig, ax = plt.subplots(figsize=(12.8, 12.4))
+    fig.subplots_adjust(left=0.075, right=0.978, top=0.878, bottom=0.200)
 
-    borne = (np.log2(0.38), np.log2(6.4))
+    # Bornes calees sur les academies cadrees, avec une marge en LOGARITHME :
+    # une marge additive en ratio serait asymetrique, large en haut et etroite
+    # en bas.
+    valeurs = np.log2(cadrees[[ra, rb]].to_numpy().ravel())
+    marge = 0.20 * (valeurs.max() - valeurs.min())
+    borne = (valeurs.min() - marge, valeurs.max() + marge)
+
     ax.plot(borne, borne, color=ENCRE_2, linewidth=1.0, linestyle="--",
             zorder=1)
-    ax.annotate("les deux étalons s'accordent", xy=(np.log2(3.1), np.log2(3.1)),
-                xytext=(6, -14), textcoords="offset points", fontsize=8,
+    # L'etiquette de la diagonale se place dans son quart INFERIEUR : le
+    # superieur est occupe par la note des academies hors cadre, et le centre
+    # par l'amas des academies proches de 1.
+    bas_diagonale = borne[0] + 0.16 * (borne[1] - borne[0])
+    ax.annotate("les deux étalons s'accordent",
+                xy=(bas_diagonale, bas_diagonale),
+                xytext=(8, -12), textcoords="offset points", fontsize=8,
                 color=ENCRE_2, rotation=45, rotation_mode="anchor",
                 ha="left", va="center")
 
     ax.axvline(0.0, color=ENCRE, linewidth=1.1, zorder=2)
     ax.axhline(0.0, color=ENCRE, linewidth=1.1, zorder=2)
 
-    ax.scatter(x, y, s=tailles, c=couleurs, alpha=0.72, linewidths=0.6,
-               edgecolors="white", zorder=3)
+    dedans = ~extreme
+    ax.scatter(x[dedans], y[dedans], s=tailles[dedans], c=couleurs[dedans],
+               alpha=0.72, linewidths=0.6, edgecolors="white", zorder=3)
 
     annotations = []
-    for xi, yi, nom, frag in zip(x, y, t["academie"], t["fragile"]):
+    for xi, yi, nom, frag in zip(x[dedans], y[dedans], cadrees["academie"],
+                                 cadrees["fragile"]):
         annotations.append(ax.annotate(
             f"{nom.title()}{' *' if frag else ''}", xy=(xi, yi),
             xytext=(11, 0), textcoords="offset points", fontsize=7.5,
             color=ENCRE, va="center", ha="left",
             arrowprops=dict(arrowstyle="-", color=MUET, linewidth=0.5,
                             shrinkA=0, shrinkB=2)))
-    restantes = placer_etiquettes(fig, ax, annotations, places)
+
+    # ---- les academies hors cadre, signalees et non tues -------------------
+    if len(hors):
+        lignes = [
+            f"{nom.title()} : {va:.2f} / {vb:.2f}".replace(".", ",")
+            for nom, va, vb in zip(hors["academie"], hors[ra], hors[rb])]
+        # Une fleche vers le coin dit dans quelle direction elles se trouvent,
+        # ce qu'un simple encadre ne dirait pas.
+        ax.annotate("Hors cadre, sur la diagonale ↗\n" + "\n".join(lignes),
+                    xy=(borne[1], borne[1]),
+                    xytext=(-14, -14), textcoords="offset points",
+                    fontsize=8, color=ENCRE_2, ha="right", va="top",
+                    linespacing=1.5,
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white",
+                              edgecolor=GRILLE, linewidth=0.6),
+                    arrowprops=dict(arrowstyle="->", color=MUET,
+                                    linewidth=0.8, shrinkA=4, shrinkB=2))
+
+    restantes = placer_etiquettes(fig, ax, annotations, places[dedans])
     if restantes:
         print(f"  {restantes} etiquettes sans position libre : elles se "
               f"chevauchent peut-etre")
 
+    # Seules les graduations tombant dans le cadre sont tracees : les autres
+    # produiraient des libelles hors de l'axe.
+    visibles = [g for g in GRADUATIONS if borne[0] <= np.log2(g) <= borne[1]]
     for graduation in (ax.set_xticks, ax.set_yticks):
-        graduation([np.log2(g) for g in GRADUATIONS])
-    etiquettes = [f"{g:g}".replace(".", ",") for g in GRADUATIONS]
+        graduation([np.log2(g) for g in visibles])
+    etiquettes = [f"{g:g}".replace(".", ",") for g in visibles]
     ax.set_xticklabels(etiquettes, fontsize=8.5)
     ax.set_yticklabels(etiquettes, fontsize=8.5)
     ax.set_xlim(*borne)
@@ -478,12 +541,12 @@ def figure_nuage(t: pd.DataFrame) -> None:
     seconde.get_frame().set_linewidth(0.6)
 
     n_change = int(t["change_de_cote"].sum())
-    sans = t[t[ra] < 3]
-    corr = f"{sans[ra].corr(sans[rb]):+.2f}".replace(".", ",")
+    corr = f"{cadrees[ra].corr(cadrees[rb]):+.2f}".replace(".", ",")
+    noms_hors = " et ".join(nom.title() for nom in hors["academie"])
 
     fig.suptitle("Les deux étalons placent-ils les académies au même endroit ?",
                  fontsize=14, fontweight="bold", x=0.02, ha="left", y=0.978)
-    fig.text(0.02, 0.938,
+    fig.text(0.02, 0.940,
              "Chaque académie est un point : son ratio d'enveloppe selon l'IPS "
              "en abscisse, selon le score de 6ᵉ en ordonnée. Un point sur la "
              "diagonale signifie\n"
@@ -491,7 +554,10 @@ def figure_nuage(t: pd.DataFrame) -> None:
              "diagonale mesure leur désaccord. La surface du point est "
              "proportionnelle au nombre\n"
              "de places de l'académie — un ratio de 0,75 sur 118 places ne pèse "
-             "pas comme un ratio de 1,40 sur 7 places.",
+             "pas comme un ratio de 1,40 sur 7 places.\n"
+             f"{noms_hors} sont HORS CADRE : leur ratio proche de cinq étirait "
+             f"l'échelle et tassait les {len(cadrees)} autres dans un coin. Leurs "
+             f"valeurs sont données en haut à droite.",
              fontsize=9, va="top", color=ENCRE_2)
 
     fig.text(0.02, 0.140,
@@ -499,10 +565,13 @@ def figure_nuage(t: pd.DataFrame) -> None:
              f"et en haut à droite, les deux étalons s'accordent sur le sens. "
              f"Dans les deux autres quadrants\n"
              f"ils se contredisent : ce sont les {n_change} académies sur "
-             f"{len(t)} qui changent de côté. Hors les deux académies au-delà de "
-             f"3 — Corse et Paris, dont le ratio est\n"
-             f"identique dans les deux étalons et vaut cinq fois la moyenne — les "
-             f"deux ratios corrèlent à {corr} seulement.\n"
+             f"{len(t)} qui changent de côté. Sur les {len(cadrees)} académies "
+             f"cadrées, les deux ratios ne corrèlent\n"
+             f"qu'à {corr}. {noms_hors}, exclues du cadre, sont exactement sur la "
+             f"diagonale : les deux étalons s'accordent sur elles, et les inclure "
+             f"porterait la corrélation\n"
+             f"à +0,95 — un accord qui serait celui de deux points, pas celui des "
+             f"trente académies.\n"
              "Les deux échelles sont logarithmiques, le ratio étant "
              "multiplicatif : recevoir deux fois trop et deux fois trop peu sont "
              "deux écarts de même ampleur. Les\n"
