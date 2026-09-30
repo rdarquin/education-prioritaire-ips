@@ -1,4 +1,4 @@
-# Éducation prioritaire et réalité sociale des collèges
+﻿# Éducation prioritaire et réalité sociale des collèges
 
 > Analyse territoriale — données DEPP et annuaire de l'éducation, rentrée 2024-2025.
 
@@ -87,9 +87,9 @@ l'IPS.
 |---|---|---|---|
 | IPS des collèges | data.education.gouv.fr — `fr-en-ips-colleges-ap2023` | 21 061 | 2023-24, 2024-25, 2025-26 |
 | Annuaire de l'éducation | data.education.gouv.fr — `fr-en-annuaire-education` | 68 581 | millésime courant |
-| Indicateurs de valeur ajoutée des collèges | data.education.gouv.fr — `fr-en-indicateurs-valeur-ajoutee-colleges` | 26 869 | sessions 2022 à 2025 |
+| Évaluations nationales de début de 6ᵉ | data.education.gouv.fr — `fr-en-evaluations_nationales_6eme_par_etablissement` | 369 797 | 2017 à 2025 |
 
-*Effectifs relevés le 22 septembre 2026, sauf l'IVAC, relevé le 29 septembre 2026.*
+*Effectifs relevés le 22 septembre 2026, sauf les évaluations de 6ᵉ, relevées le 30 septembre 2026.*
 
 **Trois points méthodologiques :**
 
@@ -98,10 +98,10 @@ l'IPS.
 
 2. La jointure avec l'annuaire se fait sur le code UAI nommé `uai` qui est le l'identifiant unique de chaque établissement.
 
-3. Le brevet se passe en fin d'année scolaire : la rentrée 2024-2025 correspond à la
-   **session 2025** du DNB. Retenir la session 2024 décalerait la mesure d'une année
-   entière sans qu'aucun contrôle ne le signale — les deux fichiers s'apparient
-   parfaitement sur l'UAI dans les deux cas.
+3. Les évaluations nationales se passent en **septembre**, au tout début de l'année
+   scolaire : la rentrée 2024-2025 correspond donc au millésime **2024**. Retenir 2025
+   décalerait la mesure d'une année entière sans qu'aucun contrôle ne le signale — les
+   deux fichiers s'apparient parfaitement sur l'UAI dans les deux cas.
 
 ---
 
@@ -119,8 +119,11 @@ uv run python -m src.distribution_ips
 uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
 uv run python -m src.carte_enveloppe
-uv run python -m src.comparaison_etalons
 ```
+
+Chaque module de figures produit **deux versions de chaque visuel** : une sur l'IPS,
+une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le suffixe
+`_eval6`.
 
 `uv sync` installe Python 3.12 et les dépendances aux versions exactes figées dans
 `uv.lock`. Aucune donnée n'est versionnée : `src/download.py` reconstruit intégralement
@@ -129,15 +132,15 @@ uv run python -m src.comparaison_etalons
 | Module | Rôle |
 |---|---|
 | `src/download.py` | télécharge les trois jeux de données bruts |
-| `src/preparation.py` | nettoie, joint IPS, annuaire et résultats au DNB, contrôle les biais d'exclusion |
+| `src/etalons.py` | registre des deux étalons (IPS, score de 6ᵉ) et conventions de nommage |
+| `src/preparation.py` | nettoie, joint IPS, annuaire et évaluations de 6ᵉ, contrôle les biais d'exclusion |
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | fond de carte partagé : contours, DROM rapprochés, annotations |
-| `src/score_ecart.py` | score d'écart d'IPS par collège, aux seuils national et académique |
-| `src/distribution_ips.py` | distribution des IPS et position des seuils, national et académiques |
-| `src/distribution_ecart.py` | distribution de l'écart au seuil, en points d'IPS, et sa répartition par plage |
+| `src/score_ecart.py` | score d'écart par collège, pour chaque étalon, aux seuils national et académique |
+| `src/distribution_ips.py` | distribution de l'étalon et position des seuils, national et académiques |
+| `src/distribution_ecart.py` | distribution de l'écart au seuil et sa répartition par plage |
 | `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
-| `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus défavorisés |
-| `src/comparaison_etalons.py` | confronte l'IPS et les résultats au DNB comme étalons de ciblage, aux échelles nationale et académique |
+| `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus bas |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -176,13 +179,14 @@ Les 6 974 collèges retenus disposent tous de coordonnées géographiques. Le ta
 perte est ici de **0,2 %** : la confrontation IPS / annuaire est quasi intégrale au
 niveau du collège.
 
-La jointure avec les résultats au DNB vient **après** ces exclusions et n'en ajoute
-aucune : 164 collèges (2,4 %) n'ont pas de résultat publié, mais ils conservent leur
-IPS et leur statut. Ils ne sortent que des analyses qui ont besoin de la note — les
-supprimer ici réduirait le champ de tout le projet pour les besoins d'un seul module.
-Ces 164 collèges ne sont **pas absents au hasard** : seuls **3,7 %** d'entre eux sont
-classés en éducation prioritaire, contre 15,7 % sur l'ensemble. La comparaison des
-étalons porte donc sur 5 271 des 5 325 collèges publics.
+La jointure avec les évaluations de 6ᵉ vient **après** ces exclusions et n'en ajoute
+aucune : 42 collèges (0,6 %) n'ont pas de score publié, mais ils conservent leur IPS
+et leur statut. Ils ne sortent que des analyses fondées sur ce second étalon — les
+supprimer ici réduirait le champ de tout le projet pour les besoins d'une seule série
+de figures. Ces 42 collèges ne sont **pas absents au hasard** : seuls **7,1 %** d'entre
+eux sont classés en éducation prioritaire, contre 15,7 % sur l'ensemble, et leur IPS
+moyen est de 113,0 contre 105,0. Les figures sur le score de 6ᵉ portent donc sur
+**5 310 des 5 325 collèges publics**.
 
 ## Le score d'écart d'IPS
 
@@ -212,9 +216,17 @@ Ces deux cas sont de sens opposé : **oubli** (sous le seuil, non classé) et
 
 **Commentaire à ajouter moi meme**
 
+![Distribution du score de 6e des collèges publics et position des seuils](outputs/figures/distribution_ips_eval6.png)
+
+**Commentaire à ajouter moi meme**
+
 ### La distribution de l'écart au seuil
 
 ![Distribution de l'écart d'IPS au seuil budgétaire](outputs/figures/distribution_ecart.png)
+
+**Commentaire à ajouter moi meme**
+
+![Distribution de l'écart de score de 6e au seuil budgétaire](outputs/figures/distribution_ecart_eval6.png)
 
 **Commentaire à ajouter moi meme**
 
@@ -244,6 +256,10 @@ Au niveau académique, vingt académies sur trente sont représentées. Paris y 
 les 4 écarts supérieurs à 20 points et Bordeaux les 2 autres : à elles deux, ces
 académies concentrent la totalité de la tranche haute.
 
+![Nombre de collèges sur-inclus par département, étalon score de 6e](outputs/figures/sur_inclusions_departements_eval6.png)
+
+**Commentaire à ajouter moi meme**
+
 #### Les oublis
 
 ![Nombre de collèges oubliés par département](outputs/figures/oublis_departements.png)
@@ -261,6 +277,10 @@ sur-inclusions : **Lille en compte 9 et Nancy-Metz 7**, soit un tiers du total �
 elles deux, mais aucune ne domine comme Paris. Ce sont précisément deux académies
 que l'arithmétique de l'enveloppe contraint — elles comptent plus de collèges sous
 le seuil national que de places à pourvoir.
+
+![Nombre de collèges oubliés par département, étalon score de 6e](outputs/figures/oublis_departements_eval6.png)
+
+**Commentaire à ajouter moi meme**
 
 ### Pourquoi Paris n'est pas comparable aux autres
 
@@ -293,138 +313,13 @@ de 1, une autre le perd.
 
 **Commentaire à ajouter moi meme**
 
+![Ratio entre places reçues et collèges au score de 6e le plus bas, par académie](outputs/figures/ratio_enveloppe_academies_eval6.png)
+
+**Commentaire à ajouter moi meme**
+
 *Cette mesure compare la carte réelle à un classement par IPS. L'IPS n'étant pas le
 critère officiel, un écart signale un désaccord entre deux instruments — et non une
 erreur administrative.*
-
----
-
-## Deux étalons pour la même carte
-
-Tout ce qui précède repose sur un étalon unique : l'IPS. Une objection s'impose — le
-résultat tiendrait-il avec une autre mesure du besoin ? On en introduit donc une
-seconde, la **note moyenne à l'écrit du DNB** (session 2025), et on applique la même
-mécanique : chaque étalon désigne les collèges les plus bas de son classement, à
-enveloppe strictement identique.
-
-Le choix de la note plutôt que du taux de réussite est technique : le taux ne prend
-que **53 valeurs distinctes** sur 5 300 collèges et sature vers le haut — un tiers
-des établissements au-dessus de 95 % — là où la note en prend 102 et se répartit
-sans butée.
-
-La **valeur ajoutée** publiée par l'IVAC, elle, a été écartée, et la raison mérite
-d'être comprise : elle mesure l'écart au résultat *attendu compte tenu du public
-accueilli*, donc elle a déjà neutralisé la composition sociale — précisément ce que
-l'éducation prioritaire cible. Les REP+ y occupent le **76ᵉ percentile** : ils font
-mieux qu'attendu. Classer sur la valeur ajoutée la plus faible en ferait les collèges
-les moins éligibles, et l'étude conclurait mécaniquement à un ciblage inversé. Ce
-serait un artefact de l'indicateur, pas un résultat.
-
-![Comparaison des deux étalons : IPS et résultats au DNB](outputs/figures/comparaison_etalons.png)
-
-**Commentaire à ajouter moi meme**
-
-### La note au DNB est un étalon nettement moins fiable que l'IPS
-
-Avant d'interpréter quoi que ce soit, il fallait savoir si cet étalon tient. Un
-indicateur qui décrit une propriété durable d'un établissement doit donner à peu près
-la même valeur chaque année. Le test est donc simple : refaire le calcul avec la
-session précédente.
-
-| Étalon | Corrélation d'une année sur l'autre | Collèges désignés qui changent |
-|---|---:|---:|
-| **IPS** | **+0,993** | **6,0 %** |
-| Note à l'écrit du DNB | +0,848 | **24,7 %** |
-| Taux de réussite au DNB | +0,657 | — |
-
-**Un quart de l'ensemble désigné par la note change selon l'année retenue**, contre
-6 % pour l'IPS. La raison est mécanique : la note est une moyenne sur une centaine
-d'élèves, et ce sont d'autres élèves chaque année. L'IPS décrit un environnement
-social, qui ne bouge pas d'une rentrée à l'autre.
-
-Deux sources à cette instabilité, et j'ai pu les séparer. D'abord le **bruit
-d'échantillonnage** : avec environ 108 candidats par collège et un écart-type
-individuel de l'ordre de 3,5 points, l'erreur-type de la moyenne vaut 0,34 point,
-soit **24 % de l'écart-type entre établissements** — 35 % pour un collège du premier
-décile d'effectif. Ensuite une **variation réelle de cohorte**, qui explique le
-reste : elle est authentique, mais c'est une propriété de l'année, pas de
-l'établissement.
-
-Le désaccord entre les deux étalons, lui, **n'est pas du bruit**. Lisser la note sur
-quatre sessions — ce qui divise le bruit, vérification faite : la corrélation
-test-retest passe de 0,848 à 0,917 — ne fait monter le recouvrement avec l'IPS que de
-**66,0 % à 71,7 %**. Il plafonne. Environ un sixième du désaccord est accidentel ;
-les cinq sixièmes sont structurels.
-
-Une crainte s'est en revanche révélée infondée. L'IVAC ne publie la note que pour la
-série générale, ce qui exclut les élèves de SEGPA — j'ai vérifié que cela ne biaise
-pas les collèges qui en accueillent : corrélation entre la note en série générale et
-la part de présents en SEGPA, **−0,031**.
-
-### Pourquoi le classement est recalculé académie par académie
-
-Le brevet est corrigé par les enseignants, dans des commissions d'harmonisation
-**académiques**. Rien ne garantit qu'un 10 à Créteil soit un 10 à Rennes — et la
-mesure dit que non. En régressant la note sur l'IPS au niveau collège, puis en
-moyennant les résidus par académie :
-
-| Académie | IPS moyen | Note moyenne | Écart à l'attendu |
-|---|---:|---:|---:|
-| **Mayotte** | 71,9 | 10,53 | **+2,16** |
-| Besançon | 98,6 | 10,87 | +0,60 |
-| … | | | |
-| Martinique | 93,6 | 8,83 | −1,09 |
-| Guadeloupe | 92,7 | 8,25 | −1,60 |
-| **Guyane** | 77,8 | 6,24 | **−2,55** |
-
-L'étendue atteint **4,71 points, soit plus de trois fois l'écart-type entre
-établissements** (1,39). Autrement dit : l'effet académie est plus grand que toute la
-dispersion qu'on prétend mesurer entre collèges. Enseigne-t-on mieux à Mayotte, ou
-y corrige-t-on moins sévèrement ? **Ces données ne permettent pas de trancher.**
-
-La conséquence était directe et disqualifiait la première version de la carte : les
-deux départements extrêmes y étaient **Mayotte** (59,1 % désignés par l'IPS seul) et
-la **Guadeloupe** (54,8 % par la note seule) — c'est-à-dire exactement les deux
-académies les plus atypiques. La carte affichait un régime de correction en le faisant
-passer pour une différence de situation scolaire.
-
-D'où la variante académique, qui existe déjà pour l'IPS et répond ici à une objection
-précise : **chaque académie désigne ses propres collèges les plus bas, sur sa propre
-enveloppe.** Un collège n'est jamais comparé qu'à des collèges corrigés par la même
-commission, et le biais disparaît par construction. Le recouvrement entre les deux
-étalons monte de 66,0 % à **69,9 %**, et **541 collèges (10,3 % du champ) changent de
-verdict** en passant d'une variante à l'autre.
-
-La carte porte donc la variante académique. Les DROM en ont disparu — les départements
-les plus en désaccord sont désormais l'Aisne, les Ardennes, l'Yonne et la
-Seine-Saint-Denis d'un côté, l'Yonne, l'Eure, la Haute-Saône et l'Oise de l'autre.
-C'est la preuve la plus directe que l'artefact a été retiré.
-
-![Où les deux étalons se contredisent](outputs/figures/desaccord_etalons.png)
-
-**Commentaire à ajouter moi meme**
-
-### La réserve qui commande toute la lecture
-
-**L'IPS se mesure en amont de la politique ; les résultats au DNB, en aval.** Il est
-construit sur les PCS déclarées par les familles, que le classement en REP ne déplace
-pas. La note, si : un collège en REP+ dispose de moyens supplémentaires, et son
-résultat en porte la trace. Classer sur une grandeur que la politique elle-même
-déplace, c'est boucler.
-
-La conséquence est qu'un collège qui ne se distingue plus par ses résultats peut
-aussi bien n'avoir jamais eu besoin d'aide qu'avoir été aidé efficacement. **Rien
-ici ne permet de trancher.** Cette section compare deux instruments de ciblage ;
-elle n'évalue pas l'efficacité du dispositif, et aucun des deux étalons n'a raison
-contre l'autre.
-
-Second point de prudence, propre à cet étalon : là où **11 collèges** seulement
-partagent la valeur exacte du seuil national d'IPS, ils sont **91** sur la note — et
-124 au total sur les trente seuils académiques. Pour ceux-là, l'appartenance aux
-dernières places tient à l'ordre de tri et non à la donnée. Ils sont marqués
-`frontiere_note` dans le fichier de sortie et ne sont pas départagés par l'IPS — ce
-qui reviendrait à contaminer un étalon par l'autre. Le tri préalable par UAI rend au
-moins ce choix arbitraire reproductible.
 
 ## Limites
 
@@ -436,11 +331,16 @@ recommande de ne pas interpréter des différences de 3 points ou moins : les
 classements fins entre établissements ou entre départements proches n'ont pas de
 sens.
 
-**L'IPS ne dit rien des résultats scolaires.** L'essentiel de ce travail porte sur la
-composition sociale des collèges, pas sur leur performance. La section « Deux étalons
-pour la même carte » introduit les résultats au DNB, mais uniquement comme second
-instrument de *ciblage* — jamais comme mesure de l'efficacité du dispositif, ce que
-la nature endogène de la variable interdit.
+**Le score de 6ᵉ n'est pas une mesure de la performance du collège.** L'évaluation a
+lieu en septembre, à l'entrée en sixième : les élèves n'ont encore rien reçu de
+l'établissement. Le score mesure donc le niveau **à l'arrivée**. C'est un avantage
+comme mesure du besoin — il n'est pas contaminé par les moyens que le collège reçoit
+au titre de l'éducation prioritaire, contrairement à un résultat d'examen en fin de
+cycle. Mais il ne dit rien de ce que le collège produit, et ce travail ne prétend
+donc évaluer l'efficacité d'aucun dispositif.
+
+Réserve résiduelle sur ce point : l'évaluation reste en aval de l'**école**, qui peut
+elle-même relever de l'éducation prioritaire.
 
 ### Le champ retenu
 
@@ -544,7 +444,7 @@ degré, qui pèsent pourtant lourd dans la critique de la carte.
 
 - [IPS des collèges](https://data.education.gouv.fr/explore/dataset/fr-en-ips-colleges-ap2023/) — DEPP
 - [Annuaire de l'éducation](https://data.education.gouv.fr/explore/dataset/fr-en-annuaire-education/) — ministère chargé de l'Éducation nationale
-- [Indicateurs de valeur ajoutée des collèges (IVAC)](https://data.education.gouv.fr/explore/dataset/fr-en-indicateurs-valeur-ajoutee-colleges/) — DEPP
+- [Évaluations nationales de début de sixième par établissement](https://data.education.gouv.fr/explore/dataset/fr-en-evaluations_nationales_6eme_par_etablissement/) — DEPP
 - Contours départementaux : [cartiflette](https://github.com/InseeFrLab/cartiflette), laboratoire d'innovation de l'Insee, d'après IGN ADMIN EXPRESS
 
 **Construction et critique du classement REP / REP+**

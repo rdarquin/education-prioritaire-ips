@@ -1,4 +1,4 @@
-uai,nom,nom_commune,departement,academie,ep,ips,ips_seuil,score_ecart_ips,plage
+uai,nom,nom_commune,departement,academie,ep,valeur,seuil,score_ecart,plage
 0331462K,Collège Francisco Goya,BORDEAUX,GIRONDE,BORDEAUX,REP,121.0,88.8,32.2,plus de 20 points
 0750552T,Collège Françoise Dolto,PARIS 20E ARRONDISSEMENT,PARIS,PARIS,REP,116.3,88.8,27.5,plus de 20 points
 0750465Y,Collège Lucie Aubrac,PARIS 11E ARRONDISSEMENT,PARIS,PARIS,REP,114.6,88.8,25.8,plus de 20 points

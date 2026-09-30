@@ -1,4 +1,4 @@
-"""Forme de la distribution de l'ecart d'IPS au seuil budgetaire.
+﻿"""Forme de la distribution de l'ecart d'IPS au seuil budgetaire.
 
 La variable est a INFLATION DE ZEROS : neuf colleges sur dix sont conformes et
 valent exactement 0. Une distribution brute serait donc un pic unique entoure
@@ -43,6 +43,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import FIGURES, PROJECT_ROOT
+from src.etalons import ETALONS, fichier_scores, nom_figure
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
@@ -52,14 +53,16 @@ DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 SEUIL_INTERPRETABLE = 3.0
 SEUIL_FORT = 10.0
 
-# Largeur de classe de l'histogramme, en points d'IPS.
-PAS = 1.0
+# Largeur de classe de l'histogramme. L'IPS s'etale sur une centaine de
+# points, le score de sixieme sur plusieurs centaines : le pas suit l'echelle
+# de l'etalon, sans quoi l'histogramme du score aurait des centaines de barres.
+PAS_PAR_ETALON = {"ips": 1.0, "eval6": 4.0}
 
 BLEU, ORANGE = "#1f3b73", "#eb6834"
 BLEU_CLAIR, ORANGE_CLAIR = "#5588cc", "#f2a888"
 ENCRE, GRILLE, MUET, ENCRE_2 = "#0b0b0b", "#e1e0d9", "#898781", "#52514e"
 
-VARIANTES = [("score_ecart_ips", "type_ecart", "national"),
+VARIANTES = [("score_ecart", "type_ecart", "national"),
              ("score_ecart_academie", "type_ecart_academie", "académique")]
 
 # Libelle, couleur de l'en-tete. L'ordre suit l'axe des abscisses, de la
@@ -71,9 +74,9 @@ PLAGES = [("moins de −10", BLEU),
           ("plus de +10", ORANGE)]
 
 
-def charger() -> pd.DataFrame:
-    """Lit le fichier des scores, produit par `score_ecart.py`."""
-    fichier = DOSSIER_TABLES / "score_ecart_ips.csv"
+def charger(cle: str) -> pd.DataFrame:
+    """Lit le fichier des scores d'un etalon, produit par `score_ecart.py`."""
+    fichier = DOSSIER_TABLES / fichier_scores(cle)
     if not fichier.exists():
         raise FileNotFoundError(
             f"{fichier.name} absent. Lance d'abord : uv run python -m src.score_ecart")
@@ -180,14 +183,19 @@ def tableau(fig, df: pd.DataFrame, position: list) -> None:
                     ha="center", va="center")
 
 
-def figure(df: pd.DataFrame) -> None:
+def figure(df: pd.DataFrame, cle: str, etalon: dict) -> None:
     """Produit l'histogramme de l'ecart signe, et le tableau qui l'accompagne."""
-    national = signer(df, "score_ecart_ips", "type_ecart")
+    national = signer(df, "score_ecart", "type_ecart")
     academique = signer(df, "score_ecart_academie", "type_ecart_academie")
 
+    pas = PAS_PAR_ETALON[cle]
+    sujet = etalon["avec_article"][0].upper() + etalon["avec_article"][1:]
+    seuil_txt = (f"{df['seuil'].iloc[0]:.{etalon['decimales']}f} points"
+                 .replace(".", ","))
+    justification = etalon["justification_seuil"]
     borne = max(np.abs(national).max(), np.abs(academique).max())
     # Bornes decalees d'un demi-pas pour que zero tombe au centre d'une classe.
-    bins = np.arange(-borne - PAS, borne + 2 * PAS, PAS) - PAS / 2
+    bins = np.arange(-borne - pas, borne + 2 * pas, pas) - pas / 2
 
     fig, ax = plt.subplots(figsize=(10, 8.0))
     # La marge basse doit loger l'etiquette d'axe sur deux lignes, le tableau
@@ -208,7 +216,7 @@ def figure(df: pd.DataFrame) -> None:
     ax.set_ylim(0, plafond)
 
     n_nuls = int((national == 0).sum())
-    ax.bar(0, plafond, width=PAS * 0.9, color=MUET, alpha=0.35, linewidth=0,
+    ax.bar(0, plafond, width=pas * 0.9, color=MUET, alpha=0.35, linewidth=0,
            zorder=0)
     ax.annotate(f"{n_nuls:,}".replace(",", " ") + " conformes\n"
                 f"({100 * n_nuls / len(df):.1f} %)\nbarre tronquée",
@@ -218,7 +226,7 @@ def figure(df: pd.DataFrame) -> None:
     for borne_seuil in (-SEUIL_INTERPRETABLE, SEUIL_INTERPRETABLE):
         ax.axvline(borne_seuil, color=MUET, linewidth=0.9, linestyle="--")
 
-    ax.set_xlabel("Écart d'IPS au seuil budgétaire\n"
+    ax.set_xlabel(f"Écart {etalon['de_article']} au seuil budgétaire\n"
                   "← sur-inclusion          conforme          oubli →",
                   fontsize=9)
     ax.set_ylabel("Nombre de collèges", fontsize=9)
@@ -230,14 +238,14 @@ def figure(df: pd.DataFrame) -> None:
 
     tableau(fig, df, [0.085, 0.250, 0.89, 0.100])
 
-    fig.suptitle("Distribution de l'écart d'IPS au seuil budgétaire",
+    fig.suptitle(f"Distribution de l'écart {etalon['de_article']} au seuil "
+                 f"budgétaire",
                  fontsize=13.5, fontweight="bold", x=0.02, ha="left", y=0.978)
     fig.text(0.02, 0.948,
              "Neuf collèges sur dix sont conformes et valent exactement zéro : la "
              "barre centrale est tronquée pour que le reste de la\n"
              "distribution reste lisible, son effectif étant annoté. Les pointillés "
-             f"marquent ± {SEUIL_INTERPRETABLE:.0f} points, seuil en deçà duquel la "
-             "DEPP\nrecommande de ne pas interpréter une différence d'IPS.",
+             f"marquent ± {SEUIL_INTERPRETABLE:.0f} points. {justification}",
              fontsize=8.5, va="top", color=ENCRE_2)
 
     fig.text(0.02, 0.200,
@@ -245,27 +253,29 @@ def figure(df: pd.DataFrame) -> None:
              "entre les deux moitiés est une propriété des données,\n"
              "non du découpage. La plage centrale réunit les collèges conformes et "
              "ceux dont l'écart reste sous le seuil d'interprétabilité.\n"
-             "Lecture : le seuil budgétaire est l'IPS du collège qui ferme "
-             "l'enveloppe réellement allouée — 88,80 points au niveau national.\n"
+             f"Lecture : le seuil budgétaire est la valeur {etalon['de_article']} "
+             f"du collège qui ferme l'enveloppe réellement allouée — "
+             f"{seuil_txt} au niveau national.\n"
              "Le trait noir donne la même distribution lorsque le seuil est recalculé "
              "académie par académie.\n"
-             "Champ : collèges publics, rentrée 2024-2025. L'IPS n'est pas le critère "
-             "officiel de classement : un écart mesure un\n"
+             f"Champ : collèges publics, rentrée 2024-2025. {sujet} n'est pas le "
+             "critère officiel de classement : un écart mesure un\n"
              "désaccord entre deux instruments, pas une erreur administrative.\n"
-             "Sources : DEPP (IPS), annuaire de l'éducation.",
+             f"Sources : {etalon['source']}, annuaire de l'éducation.",
              fontsize=7.5, va="top", color=ENCRE_2)
 
     FIGURES.mkdir(parents=True, exist_ok=True)
-    chemin = FIGURES / "distribution_ecart.png"
+    chemin = FIGURES / nom_figure("distribution_ecart", cle)
     fig.savefig(chemin, dpi=200, facecolor="white")
     plt.close(fig)
     print(f"\n[+] {chemin.name}")
 
 
 def main() -> None:
-    df = charger()
-    resumer(df)
-    figure(df)
+    for cle, etalon in ETALONS.items():
+        df = charger(cle)
+        resumer(df)
+        figure(df, cle, etalon)
 
 
 if __name__ == "__main__":

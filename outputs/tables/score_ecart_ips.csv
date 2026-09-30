@@ -1,4 +1,4 @@
-uai,nom,secteur,ep,ips,ips_seuil,score_ecart_ips,type_ecart,ips_seuil_academie,score_ecart_academie,type_ecart_academie,code_commune,nom_commune,code_departement,departement,code_academie,academie,latitude,longitude
+uai,nom,secteur,ep,valeur,seuil,score_ecart,type_ecart,seuil_academie,score_ecart_academie,type_ecart_academie,code_commune,nom_commune,code_departement,departement,code_academie,academie,latitude,longitude
 0010002X,Collège Saint-Exupéry,public,hors EP,94.9,88.8,0.0,conforme,87.5,0.0,conforme,01004,AMBERIEU EN BUGEY,01,AIN,10,LYON,45.961858148873226,5.355969061372386
 0010005A,Collège Roger Poulnard,public,hors EP,112.3,88.8,0.0,conforme,87.5,0.0,conforme,01025,BAGE DOMMARTIN,01,AIN,10,LYON,46.31650727674668,4.946032513123555
 0010008D,Collège Saint-Exupéry,public,hors EP,93.8,88.8,0.0,conforme,87.5,0.0,conforme,01033,VALSERHONE,01,AIN,10,LYON,46.11413270166479,5.816508636186252

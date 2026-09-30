@@ -1,4 +1,4 @@
-"""Les ecarts les plus forts au seuil budgetaire national, des deux cotes.
+﻿"""Les ecarts les plus forts au seuil budgetaire national, des deux cotes.
 
 Champ : les CINQUANTE plus gros ecarts de chaque type, au seuil NATIONAL
 (88,80 points). Le classement se fait sur l'ampleur de l'ecart, non sur un
@@ -52,6 +52,7 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 
 from src.cartographie import annoter_drom, charger_contours
 from src.config import FIGURES, PROJECT_ROOT
+from src.etalons import ETALONS, fichier_scores, nom_figure
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
@@ -120,7 +121,7 @@ def replier(texte: str, largeur: int = LARGEUR_NOTE_CARTE) -> str:
     return textwrap.fill(" ".join(texte.split()), width=largeur)
 
 
-def charger(type_ecart: str) -> pd.DataFrame:
+def charger(type_ecart: str, cle: str) -> pd.DataFrame:
     """Les TOP_N plus gros ecarts d'un type donne, avec leur plage.
 
     La selection se fait sur le RANG et non sur un seuil : les deux types sont
@@ -129,17 +130,17 @@ def charger(type_ecart: str) -> pd.DataFrame:
     meme etendue d'ecart — c'est la rancon d'un effectif constant, et le
     sous-titre de chaque figure le precise.
     """
-    fichier = DOSSIER_TABLES / "score_ecart_ips.csv"
+    fichier = DOSSIER_TABLES / fichier_scores(cle)
     if not fichier.exists():
         raise FileNotFoundError(
             f"{fichier.name} absent. Lance d'abord : uv run python -m src.score_ecart")
 
     df = pd.read_csv(fichier, dtype={"code_departement": str, "code_commune": str})
     sous = df[df["type_ecart"] == type_ecart].nlargest(
-        TOP_N, "score_ecart_ips").copy()
+        TOP_N, "score_ecart").copy()
 
     sous["plage"] = pd.cut(
-        sous["score_ecart_ips"],
+        sous["score_ecart"],
         bins=[b for b, _, _ in PLAGES] + [np.inf],
         labels=[libelle for _, _, libelle in PLAGES],
         right=False)  # borne basse incluse : 15,0 va dans "15 a 20"
@@ -166,7 +167,8 @@ def classes_effectif(maximum: int, reglage: dict) -> tuple:
     return bornes, couleurs, etiquettes
 
 
-def figure_departements(sous: pd.DataFrame, contours, reglage: dict) -> None:
+def figure_departements(sous: pd.DataFrame, contours, reglage: dict,
+                        cle: str, etalon: dict) -> None:
     """Carte : effectif inscrit directement sur chaque departement concerne."""
     par_dep = sous.groupby("code_departement").size().rename("effectif")
     gdf = contours.join(par_dep, how="left")
@@ -204,7 +206,8 @@ def figure_departements(sous: pd.DataFrame, contours, reglage: dict) -> None:
     ax.legend(poignees, etiquettes, loc="upper right", frameon=False,
               fontsize=8.5, title=reglage["legende_carte"], title_fontsize=8.5)
 
-    fig.suptitle(reglage["titre_carte"], fontsize=13, fontweight="bold",
+    fig.suptitle(f"{reglage['titre_carte']} — étalon : {etalon['libelle']}",
+                 fontsize=13, fontweight="bold",
                  x=0.02, ha="left", y=0.975)
     fig.text(0.02, 0.10,
              f"{int(gdf['effectif'].sum())} collèges publics dans "
@@ -213,7 +216,7 @@ def figure_departements(sous: pd.DataFrame, contours, reglage: dict) -> None:
              + replier(reglage["contrainte"]) + "\n" + RESERVE_CARTE,
              fontsize=7.5, va="top", color=ENCRE_2)
 
-    chemin = FIGURES / f"{reglage['radical']}_departements.png"
+    chemin = FIGURES / nom_figure(f"{reglage['radical']}_departements", cle)
     fig.savefig(chemin, dpi=200, facecolor="white")
     plt.close(fig)
     print(f"  [+] {chemin.name}")
@@ -226,34 +229,39 @@ def main() -> None:
 
     DOSSIER_TABLES.mkdir(parents=True, exist_ok=True)
     colonnes = ["uai", "nom", "nom_commune", "departement", "academie", "ep",
-                "ips", "ips_seuil", "score_ecart_ips", "plage"]
+                "valeur", "seuil", "score_ecart", "plage"]
 
-    for type_ecart, reglage in TYPES.items():
-        sous = charger(type_ecart)
-        q = sous["score_ecart_ips"]
-        print(f"\n{'=' * 72}\n{type_ecart.upper()} : top {len(sous)}, "
-              f"de {q.min():.1f} a {q.max():.1f} points d'ecart\n{'=' * 72}")
-        print(sous["plage"].value_counts().reindex(
-            [libelle for _, _, libelle in PLAGES]).to_string())
+    for cle, etalon in ETALONS.items():
+        print(f"\n{'#' * 72}\n# ETALON : {etalon['libelle_long'].upper()}"
+              f"\n{'#' * 72}")
 
-        table = pd.crosstab(sous["academie"], sous["plage"])
-        table["total"] = table.sum(axis=1)
-        print("\n--- par academie ---")
-        print(table.sort_values("total", ascending=False).to_string())
+        for type_ecart, reglage in TYPES.items():
+            sous = charger(type_ecart, cle)
+            q = sous["score_ecart"]
+            print(f"\n{'=' * 72}\n{type_ecart.upper()} : top {len(sous)}, "
+                  f"de {q.min():.1f} a {q.max():.1f} points d'ecart\n{'=' * 72}")
+            print(sous["plage"].value_counts().reindex(
+                [libelle for _, _, libelle in PLAGES]).to_string())
 
-        dep = (sous.groupby(["code_departement", "departement"]).size()
-               .rename("colleges").reset_index()
-               .sort_values("colleges", ascending=False))
-        print("\n--- par departement ---")
-        print(dep.to_string(index=False))
+            table = pd.crosstab(sous["academie"], sous["plage"])
+            table["total"] = table.sum(axis=1)
+            print("\n--- par academie ---")
+            print(table.sort_values("total", ascending=False).to_string())
 
-        print("\nFigure :")
-        figure_departements(sous, contours, reglage)
+            dep = (sous.groupby(["code_departement", "departement"]).size()
+                   .rename("colleges").reset_index()
+                   .sort_values("colleges", ascending=False))
+            print("\n--- par departement ---")
+            print(dep.to_string(index=False))
 
-        chemin = DOSSIER_TABLES / f"{reglage['radical']}_forts.csv"
-        sous.sort_values("score_ecart_ips", ascending=False)[colonnes].to_csv(
-            chemin, index=False, encoding="utf-8")
-        print(f"  [+] {chemin.name} ({len(sous)} collèges)")
+            print("\nFigure :")
+            figure_departements(sous, contours, reglage, cle, etalon)
+
+            radical = f"{reglage['radical']}_forts{etalon['suffixe']}"
+            chemin = DOSSIER_TABLES / f"{radical}.csv"
+            sous.sort_values("score_ecart", ascending=False)[colonnes].to_csv(
+                chemin, index=False, encoding="utf-8")
+            print(f"  [+] {chemin.name} ({len(sous)} collèges)")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Cartographie departementale des ecarts SIGNIFICATIFS au seuil budgetaire.
+﻿"""Cartographie departementale des ecarts SIGNIFICATIFS au seuil budgetaire.
 
 Produit une figure a deux cartes :
 
@@ -106,24 +106,24 @@ def agreger(scores: pd.DataFrame) -> pd.DataFrame:
     # C'est ce signe qui rend la seconde carte lisible.
     sous["score_signe"] = np.select(
         [sous["type_ecart"] == "oublie", sous["type_ecart"] == "sur-inclus"],
-        [sous["score_ecart_ips"], -sous["score_ecart_ips"]],
+        [sous["score_ecart"], -sous["score_ecart"]],
         default=0.0)
 
-    significatif = sous["score_ecart_ips"] > SEUIL_SIGNIFICATIF
+    significatif = sous["score_ecart"] > SEUIL_SIGNIFICATIF
     sous["est_significatif"] = significatif
     sous["score_signe_significatif"] = sous["score_signe"].where(significatif, 0.0)
-    sous["masse_oublis"] = sous["score_ecart_ips"].where(
+    sous["masse_oublis"] = sous["score_ecart"].where(
         sous["type_ecart"] == "oublie", 0.0)
-    sous["masse_sur_inclusions"] = sous["score_ecart_ips"].where(
+    sous["masse_sur_inclusions"] = sous["score_ecart"].where(
         sous["type_ecart"] == "sur-inclus", 0.0)
 
     dep = sous.groupby(["code_departement", "departement"]).agg(
         colleges=("uai", "size"),
         classes=("ep", lambda s: (s != "hors EP").sum()),
-        en_ecart=("score_ecart_ips", lambda s: (s > 0).sum()),
+        en_ecart=("score_ecart", lambda s: (s > 0).sum()),
         significatifs=("est_significatif", "sum"),
         somme_signee_significative=("score_signe_significatif", "sum"),
-        score_total=("score_ecart_ips", "sum"),
+        score_total=("score_ecart", "sum"),
         masse_oublis=("masse_oublis", "sum"),
         masse_sur_inclusions=("masse_sur_inclusions", "sum"),
     ).reset_index()

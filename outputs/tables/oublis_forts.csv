@@ -1,4 +1,4 @@
-uai,nom,nom_commune,departement,academie,ep,ips,ips_seuil,score_ecart_ips,plage
+uai,nom,nom_commune,departement,academie,ep,valeur,seuil,score_ecart,plage
 0631120A,Collège Gérard Philipe,CLERMONT FERRAND,PUY-DE-DOME,CLERMONT-FERRAND,hors EP,71.4,88.8,17.39999999999999,15 à 20 points
 0911444A,Collège Montesquieu,EVRY COURCOURONNES,ESSONNE,VERSAILLES,hors EP,71.8,88.8,17.0,15 à 20 points
 0342132H,Collège Lucie Aubrac,BEZIERS,HERAULT,MONTPELLIER,hors EP,74.8,88.8,14.0,10 à 15 points

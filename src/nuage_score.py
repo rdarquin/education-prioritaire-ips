@@ -1,4 +1,4 @@
-"""Nuage de points des deux variables cartographiees dans `cartographie_score`.
+﻿"""Nuage de points des deux variables cartographiees dans `cartographie_score`.
 
 En abscisse la FREQUENCE des ecarts significatifs (part des colleges du
 departement dont le score depasse 3 points d'IPS), en ordonnee leur NATURE

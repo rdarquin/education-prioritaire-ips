@@ -1,4 +1,4 @@
-"""Carte du ratio d'enveloppe par academie.
+﻿"""Carte du ratio d'enveloppe par academie.
 
 QUESTION POSEE
 
@@ -49,6 +49,8 @@ import matplotlib
 
 matplotlib.use("Agg")  # backend sans fenetre : on ecrit des fichiers
 
+import textwrap
+
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
@@ -57,6 +59,8 @@ from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
 
 from src.cartographie import charger_contours
 from src.config import FIGURES, PROJECT_ROOT
+from src.etalons import (ETALONS, fichier_academies, fichier_scores,
+                         nom_figure)
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
@@ -71,7 +75,14 @@ DIVERGENTE = LinearSegmentedColormap.from_list(
 
 # Academies nommees sur la carte : les deux extremes de chaque cote. Les
 # autres portent leur ratio sans etiquette, faute de place.
-ACADEMIES_NOMMEES = ["CORSE", "PARIS", "STRASBOURG", "NICE"]
+# Elles sont CALCULEES dans `figure` : les deux ratios les plus hauts et les
+# deux plus bas, qui ne sont pas les memes selon l'etalon.
+
+# En dessous de ce nombre de colleges dans l'ensemble optimal, le ratio d'une
+# academie repose sur trop peu d'observations pour etre lu comme les autres.
+# Ces academies sont nommees dans la note, sans etre retirees de la carte :
+# les masquer donnerait a croire qu'on n'a pas la donnee.
+SEUIL_FRAGILE = 10
 
 # `cartographie.annoter_drom` attend un fond indexe par code departement ; ici
 # l'index est l'academie. Les cinq academies ultramarines portant le nom de
@@ -81,15 +92,16 @@ DROM_ACADEMIES = {"GUADELOUPE": "Guadeloupe", "MARTINIQUE": "Martinique",
                   "MAYOTTE": "Mayotte"}
 
 
-def charger() -> tuple[pd.DataFrame, pd.DataFrame]:
+def charger(cle: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Lit les ratios par academie et le rattachement departement -> academie."""
-    for nom in ("score_ecart_ips.csv", "score_ecart_par_academie.csv"):
+    fichiers = (fichier_scores(cle), fichier_academies(cle))
+    for nom in fichiers:
         if not (DOSSIER_TABLES / nom).exists():
             raise FileNotFoundError(
                 f"{nom} absent. Lance d'abord : uv run python -m src.score_ecart")
 
-    academies = pd.read_csv(DOSSIER_TABLES / "score_ecart_par_academie.csv")
-    colleges = pd.read_csv(DOSSIER_TABLES / "score_ecart_ips.csv",
+    academies = pd.read_csv(DOSSIER_TABLES / fichiers[1])
+    colleges = pd.read_csv(DOSSIER_TABLES / fichiers[0],
                            dtype={"code_departement": str})
 
     # Un departement releve d'une seule academie : la correspondance est donc
@@ -130,9 +142,11 @@ def classes_ratio(ratios: np.ndarray) -> tuple:
     return np.unique(np.round(bornes, 4))
 
 
-def figure(academies: pd.DataFrame, gdf) -> None:
+def figure(academies: pd.DataFrame, gdf, cle: str, etalon: dict) -> None:
     """Choroplethe academique du ratio, valeur inscrite sur chaque academie."""
     ratios = academies.set_index("academie")["ratio_enveloppe"]
+    tri = ratios.sort_values()
+    nommees = list(tri.index[:2]) + list(tri.index[-2:])
     gdf = gdf.join(ratios)
     connus = gdf["ratio_enveloppe"].notna()
 
@@ -161,7 +175,7 @@ def figure(academies: pd.DataFrame, gdf) -> None:
                     xy=(point.x, point.y), ha="center", va="center",
                     fontsize=6.8, fontweight="bold", color=ENCRE,
                     path_effects=liec)
-        if nom in ACADEMIES_NOMMEES:
+        if nom in nommees:
             ax.annotate(nom.title(), xy=(point.x, point.y), xytext=(0, -9),
                         textcoords="offset points", ha="center", va="top",
                         fontsize=6.5, color=ENCRE_2, path_effects=liec)
@@ -186,16 +200,34 @@ def figure(academies: pd.DataFrame, gdf) -> None:
     cax.set_xlabel("← reçoit moins que l'étalon        ratio = 1        "
                    "reçoit plus →", fontsize=8, labelpad=4)
 
-    fig.suptitle("Chaque académie reçoit-elle autant de places qu'elle compte\n"
-                 "de collèges parmi les plus défavorisés de France ?",
+    places = f"{int(academies['classes'].sum()):,}".replace(",", " ")
+    sujet = etalon["avec_article"][0].upper() + etalon["avec_article"][1:]
+
+    # Les academies fragiles sont CALCULEES et non ecrites en dur : elles
+    # changent d'un etalon a l'autre. Un ratio assis sur une poignee de
+    # colleges n'a pas la meme portee qu'un ratio assis sur cent cinquante.
+    petites = academies[academies["defavorises_national"] < SEUIL_FRAGILE]
+    if petites.empty:
+        fragiles = ""
+    else:
+        noms = ", ".join(f"{a.title()} ({int(n)})" for a, n in
+                         zip(petites["academie"], petites["defavorises_national"]))
+        # La liste s'allonge avec le nombre d'academies fragiles : sans repli,
+        # elle deborderait du cadre pour l'un des deux etalons.
+        fragiles = textwrap.fill(
+            f"Académies au dénominateur minuscule — {noms} collèges dans "
+            f"l'ensemble optimal.", width=118)
+    fig.suptitle(f"Chaque académie reçoit-elle autant de places qu'elle compte\n"
+                 f"de collèges parmi les plus bas de France ? "
+                 f"— étalon : {etalon['libelle']}",
                  fontsize=13, fontweight="bold", x=0.02, ha="left", y=0.975)
     fig.text(0.02, 0.918,
-             "Ratio entre les places d'éducation prioritaire reçues et le nombre de "
-             "collèges de l'académie figurant parmi les 1 094 collèges\n"
-             "publics d'IPS le plus faible du pays — soit exactement le nombre de "
-             "places distribuées. Le ratio national vaut donc 1 par\n"
-             "construction, et la carte se lit comme une redistribution à somme "
-             "nulle.",
+             f"Ratio entre les places d'éducation prioritaire reçues et le "
+             f"nombre de collèges de l'académie figurant parmi les {places}\n"
+             f"collèges publics dont {etalon['avec_article']} est le plus bas du "
+             f"pays — soit exactement le nombre de places distribuées. Le ratio\n"
+             f"national vaut donc 1 par construction, et la carte se lit comme "
+             f"une redistribution à somme nulle.",
              fontsize=8.5, va="top", color=ENCRE_2)
 
     fig.text(0.02, 0.113,
@@ -207,46 +239,49 @@ def figure(academies: pd.DataFrame, gdf) -> None:
              "La répartition des réseaux entre académies est arrêtée au niveau "
              "national sans clé de calcul publiée : ce ratio mesure une clé implicite, "
              "il n'en reprend aucune.\n"
-             "L'IPS n'est pas le critère officiel de classement — un écart à 1 signale "
-             "un désaccord entre deux instruments, pas une erreur de répartition.\n"
-             "Les ratios de la Corse et de Paris reposent sur un dénominateur "
-             "minuscule — 2 et 6 collèges dans l'ensemble optimal : ils sont "
-             "instables, un collège de plus ou de moins\n"
-             "les déplacerait fortement.\n"
-             "Champ : collèges publics, rentrée 2024-2025. Sources : DEPP (IPS), "
-             "annuaire de l'éducation, contours Insee/cartiflette.\n"
+             f"{sujet} n'est pas le critère officiel de classement — un écart à 1 "
+             "signale un désaccord entre deux instruments, pas une erreur de "
+             "répartition.\n"
+             f"{fragiles} Un dénominateur aussi petit rend le ratio instable : un "
+             "collège de plus ou de moins le déplacerait fortement.\n"
+             f"Champ : collèges publics, rentrée 2024-2025. Sources : "
+             f"{etalon['source']}, annuaire de l'éducation, contours "
+             "Insee/cartiflette.\n"
              "DROM rapprochés, échelles et distances non respectées.",
              fontsize=7.5, va="top", color=ENCRE_2)
 
     FIGURES.mkdir(parents=True, exist_ok=True)
-    chemin = FIGURES / "ratio_enveloppe_academies.png"
+    chemin = FIGURES / nom_figure("ratio_enveloppe_academies", cle)
     fig.savefig(chemin, dpi=200, facecolor="white")
     plt.close(fig)
     print(f"  [+] {chemin.name}")
 
 
 def main() -> None:
-    academies, rattachement = charger()
+    # Les contours sont identiques d'un etalon a l'autre : on les construit
+    # une fois, quitte a relire le rattachement pour chacun.
+    for cle, etalon in ETALONS.items():
+        academies, rattachement = charger(cle)
 
-    total_places = int(academies["classes"].sum())
-    total_defavorises = int(academies["defavorises_national"].sum())
-    print(f"\n{'=' * 72}")
-    print("RATIO D'ENVELOPPE PAR ACADEMIE")
-    print("=" * 72)
-    print(f"\n  places distribuees {total_places}, colleges dans l'ensemble "
-          f"optimal {total_defavorises}")
-    print(f"  ratio France : {total_places / total_defavorises:.4f}")
+        total_places = int(academies["classes"].sum())
+        total_defavorises = int(academies["defavorises_national"].sum())
+        print(f"\n{'=' * 72}")
+        print(f"RATIO D'ENVELOPPE PAR ACADEMIE — {etalon['libelle_long'].upper()}")
+        print("=" * 72)
+        print(f"\n  places distribuees {total_places}, colleges dans l'ensemble "
+              f"optimal {total_defavorises}")
+        print(f"  ratio France : {total_places / total_defavorises:.4f}")
 
-    tri = academies.sort_values("ratio_enveloppe", ascending=False)
-    colonnes = ["academie", "colleges", "classes", "defavorises_national",
-                "ratio_enveloppe"]
-    print("\n" + tri[colonnes].to_string(index=False))
+        tri = academies.sort_values("ratio_enveloppe", ascending=False)
+        colonnes = ["academie", "colleges", "classes", "defavorises_national",
+                    "ratio_enveloppe"]
+        print("\n" + tri[colonnes].to_string(index=False))
 
-    print("\nContours :")
-    gdf = contours_academiques(rattachement)
+        print("\nContours :")
+        gdf = contours_academiques(rattachement)
 
-    print("\nFigure :")
-    figure(academies, gdf)
+        print("\nFigure :")
+        figure(academies, gdf, cle, etalon)
 
 
 if __name__ == "__main__":

@@ -30,16 +30,16 @@ API_BASE = "https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets"
 DATASETS = {
     "ips_colleges": "fr-en-ips-colleges-ap2023",
     "annuaire": "fr-en-annuaire-education",
-    "ivac_colleges": "fr-en-indicateurs-valeur-ajoutee-colleges",
+    "eval6_colleges": "fr-en-evaluations_nationales_6eme_par_etablissement",
 }
 
 # Rentree analysee. Le choix se justifie dans le README : c'est la plus
 # recente pour laquelle l'annuaire et le fichier IPS concordent.
 RENTREE_REFERENCE = "2024-2025"
 
-# Session du DNB correspondant a RENTREE_REFERENCE. Le brevet se passe en fin
-# d'annee scolaire : les eleves de la rentree 2024-2025 le composent en juin
-# 2025. Faire correspondre "2024-2025" a la session 2024 decalerait la mesure
-# d'une annee entiere, sans qu'aucun controle ne le signale — les deux fichiers
-# s'apparieraient parfaitement sur l'UAI.
-SESSION_DNB = "2025"
+# Millesime des evaluations nationales de sixieme correspondant a
+# RENTREE_REFERENCE. Elles se passent en SEPTEMBRE, au tout debut de l'annee
+# scolaire : la rentree 2024-2025 correspond donc a l'annee 2024. Prendre 2025
+# decalerait la mesure d'une annee entiere sans qu'aucun controle ne le
+# signale — les deux fichiers s'apparieraient parfaitement sur l'UAI.
+ANNEE_EVAL6 = "2024"

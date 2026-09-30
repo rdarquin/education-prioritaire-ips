@@ -1,4 +1,4 @@
-"""Score d'ecart d'IPS : une variable, une valeur par college.
+﻿"""Score d'ecart d'IPS : une variable, une valeur par college.
 
 DEFINITION
 
@@ -85,6 +85,7 @@ import pandas as pd
 
 from src.analyse import charger, restreindre_au_public
 from src.config import PROJECT_ROOT
+from src.etalons import ETALONS, fichier_academies, fichier_scores
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
@@ -99,16 +100,15 @@ VARIANTES = [
 def noms_colonnes(suffixe: str) -> tuple[str, str, str]:
     """Noms des trois colonnes produites par une variante.
 
-    La variante nationale conserve les noms historiques `ips_seuil`,
-    `score_ecart_ips` et `type_ecart`, sur lesquels reposent les modules de
-    figures. D'ou cette irregularite : `score_ecart_ips` et non `score_ecart`.
+    Ces noms ne mentionnent PAS l'etalon : `seuil` et non `ips_seuil`. C'est
+    delibere. Le meme code produit le fichier de l'IPS et celui du score de
+    sixieme, et seul le NOM DU FICHIER les distingue — ce qui permet aux
+    modules de figures de traiter les deux etalons sans une ligne de plus.
     """
-    if suffixe == "":
-        return "ips_seuil", "score_ecart_ips", "type_ecart"
-    return f"ips_seuil{suffixe}", f"score_ecart{suffixe}", f"type_ecart{suffixe}"
+    return f"seuil{suffixe}", f"score_ecart{suffixe}", f"type_ecart{suffixe}"
 
 
-def seuil_budgetaire(sous: pd.DataFrame) -> float:
+def seuil_budgetaire(sous: pd.DataFrame, colonne: str) -> float:
     """IPS du college qui ferme l'enveloppe du champ.
 
     Si n colleges du champ sont classes, le seuil est l'IPS du n-ieme le plus
@@ -124,10 +124,10 @@ def seuil_budgetaire(sous: pd.DataFrame) -> float:
     n_classes = int(sous["classe_ep"].sum())
     if n_classes == 0:
         return np.nan
-    return sous["ips"].nsmallest(n_classes).max()
+    return sous[colonne].nsmallest(n_classes).max()
 
 
-def ajouter_score(df: pd.DataFrame, groupes: list[str],
+def ajouter_score(df: pd.DataFrame, groupes: list[str], colonne: str,
                   suffixe: str = "") -> pd.DataFrame:
     """Ajoute le seuil, le score et le type d'ecart pour un decoupage donne.
 
@@ -146,15 +146,15 @@ def ajouter_score(df: pd.DataFrame, groupes: list[str],
 
     if groupes:
         seuils = df.groupby(groupes, sort=False).apply(
-            seuil_budgetaire, include_groups=False)
+            seuil_budgetaire, colonne=colonne, include_groups=False)
         # `index.map` accepte indistinctement un Index et un MultiIndex : le
         # meme code sert donc a tous les decoupages.
         df[col_seuil] = df.set_index(groupes).index.map(seuils)
     else:
-        df[col_seuil] = seuil_budgetaire(df)
+        df[col_seuil] = seuil_budgetaire(df, colonne)
 
-    sous_seuil = df["ips"] < df[col_seuil]
-    au_seuil = df["ips"] == df[col_seuil]
+    sous_seuil = df[colonne] < df[col_seuil]
+    au_seuil = df[colonne] == df[col_seuil]
     classe = df["classe_ep"]
 
     # Les deux cas d'ecart. Les ex aequo au seuil n'en font partie ni d'un
@@ -164,7 +164,7 @@ def ajouter_score(df: pd.DataFrame, groupes: list[str],
 
     df[col_score] = 0.0
     df.loc[oublie | sur_inclus, col_score] = (
-        df.loc[oublie | sur_inclus, "ips"] - df.loc[oublie | sur_inclus, col_seuil]
+        df.loc[oublie | sur_inclus, colonne] - df.loc[oublie | sur_inclus, col_seuil]
     ).abs()
 
     df[col_type] = "conforme"
@@ -177,7 +177,7 @@ def ajouter_score(df: pd.DataFrame, groupes: list[str],
     return df
 
 
-def controler_identite(df: pd.DataFrame, groupes: list[str],
+def controler_identite(df: pd.DataFrame, groupes: list[str], colonne: str,
                        suffixe: str, libelle: str) -> None:
     """Verifie, dans chaque champ, que la somme des scores egale l'ecart de masse.
 
@@ -195,25 +195,26 @@ def controler_identite(df: pd.DataFrame, groupes: list[str],
         if n_classes == 0:
             continue
         total = sous[col_score].sum()
-        ecart_masse = (sous.loc[sous["classe_ep"], "ips"].sum()
-                       - sous["ips"].nsmallest(n_classes).sum())
+        ecart_masse = (sous.loc[sous["classe_ep"], colonne].sum()
+                       - sous[colonne].nsmallest(n_classes).sum())
         if not np.isclose(total, ecart_masse, rtol=1e-6, atol=1e-6):
             raise ValueError(
                 f"variante {libelle}, champ {cle} : somme des scores "
-                f"({total:.4f}) et ecart de masse d'IPS ({ecart_masse:.4f}) "
+                f"({total:.4f}) et ecart de masse ({ecart_masse:.4f}) "
                 f"divergent. Le score est faux.")
         controles += 1
 
     print(f"  {libelle:11s} : identite verifiee sur {controles} champs")
 
 
-def resumer(df: pd.DataFrame, suffixe: str, libelle: str) -> None:
+def resumer(df: pd.DataFrame, suffixe: str, libelle: str, etalon: dict) -> None:
     """Affiche la distribution de la variable."""
     _, col_score, col_type = noms_colonnes(suffixe)
     n_classes = int(df["classe_ep"].sum())
 
     print(f"\n{'=' * 78}")
-    print(f"SEUIL {libelle.upper()} — DISTRIBUTION DU SCORE")
+    print(f"SEUIL {libelle.upper()} — DISTRIBUTION DU SCORE "
+          f"({etalon['libelle']})")
     print("=" * 78)
     print(f"\n{len(df)} colleges publics, {n_classes} classes "
           f"({100 * n_classes / len(df):.1f} %)")
@@ -233,7 +234,7 @@ def resumer(df: pd.DataFrame, suffixe: str, libelle: str) -> None:
           f"{df[col_score].sum() / n_classes:.2f} pts par place")
 
 
-def comparer_academies(df: pd.DataFrame) -> pd.DataFrame:
+def comparer_academies(df: pd.DataFrame, colonne: str) -> pd.DataFrame:
     """Confronte les deux variantes academie par academie.
 
     C'est la table qui rend la variante utile : elle montre quelle part des
@@ -248,19 +249,19 @@ def comparer_academies(df: pd.DataFrame) -> pd.DataFrame:
     # sur le total national. C'est cette definition qui garantit un ratio
     # d'enveloppe exactement egal a 1 pour la France entiere.
     n_total = int(df["classe_ep"].sum())
-    optimal_national = set(df.nsmallest(n_total, "ips")["uai"])
+    optimal_national = set(df.nsmallest(n_total, colonne)["uai"])
 
     lignes = []
     for (code, nom), g in df.groupby(["code_academie", "academie"], sort=False):
         n_classes = int(g["classe_ep"].sum())
         if n_classes == 0:
             continue
-        seuil_nat = g["ips_seuil"].iloc[0]
+        seuil_nat = g["seuil"].iloc[0]
         defavorises_nat = int(g["uai"].isin(optimal_national).sum())
 
         # Recouvrement : combien des classes reels figurent parmi les n
         # colleges les plus defavorises de l'academie ?
-        optimal = set(g.nsmallest(n_classes, "ips")["uai"])
+        optimal = set(g.nsmallest(n_classes, colonne)["uai"])
         reels = set(g.loc[g["classe_ep"], "uai"])
 
         lignes.append({
@@ -281,37 +282,48 @@ def comparer_academies(df: pd.DataFrame) -> pd.DataFrame:
             "sur_incl_academique": int((g["type_ecart_academie"] == "sur-inclus").sum()),
             "oublis_academique": int((g["type_ecart_academie"] == "oublie").sum()),
             "seuil_national": round(seuil_nat, 1),
-            "seuil_academique": round(g["ips_seuil_academie"].iloc[0], 1),
+            "seuil_academique": round(g["seuil_academie"].iloc[0], 1),
             "recouvrement_pct": round(100 * len(reels & optimal) / n_classes, 1),
             "score_par_place_national": round(
-                g["score_ecart_ips"].sum() / n_classes, 2),
+                g["score_ecart"].sum() / n_classes, 2),
             "score_par_place_academique": round(
                 g["score_ecart_academie"].sum() / n_classes, 2),
         })
     return pd.DataFrame(lignes)
 
 
-def main() -> None:
-    df = charger()
-    df = restreindre_au_public(df)
+def traiter(base: pd.DataFrame, cle: str) -> None:
+    """Calcule, controle et ecrit le score d'ecart pour un etalon.
 
-    print(f"\n{len(df)} colleges publics analyses")
+    Le champ est restreint aux colleges dont l'etalon est renseigne. C'est
+    indispensable : un college sans valeur ne peut etre ni range parmi les plus
+    bas, ni declare conforme. L'enveloppe est alors le nombre de classes DANS
+    CE CHAMP, ce qui preserve l'identite verifiee par `controler_identite`.
+    """
+    etalon = ETALONS[cle]
+    colonne = etalon["colonne"]
+
+    df = base.dropna(subset=[colonne]).copy()
+    perdus = len(base) - len(df)
+
+    print(f"\n{'#' * 78}")
+    print(f"# ETALON : {etalon['libelle_long'].upper()}")
+    print("#" * 78)
+    print(f"\n{len(df)} colleges publics analyses"
+          + (f" ({perdus} ecartes, valeur non renseignee)" if perdus else ""))
     print(f"{df['code_academie'].nunique()} academies")
-    if df["code_academie"].isna().any():
-        print(f"  ATTENTION : {df['code_academie'].isna().sum()} colleges "
-              f"sans academie renseignee")
 
     for suffixe, groupes, libelle in VARIANTES:
-        df = ajouter_score(df, groupes, suffixe)
+        df = ajouter_score(df, groupes, colonne, suffixe)
 
     print("\nControle du calcul :")
     for suffixe, groupes, libelle in VARIANTES:
-        controler_identite(df, groupes, suffixe, libelle)
+        controler_identite(df, groupes, colonne, suffixe, libelle)
 
     for suffixe, _, libelle in VARIANTES:
-        resumer(df, suffixe, libelle)
+        resumer(df, suffixe, libelle, etalon)
 
-    academies = comparer_academies(df)
+    academies = comparer_academies(df, colonne)
 
     print(f"\n{'=' * 78}")
     print("LES DEUX VARIANTES, ACADEMIE PAR ACADEMIE")
@@ -331,23 +343,36 @@ def main() -> None:
 
     DOSSIER_TABLES.mkdir(parents=True, exist_ok=True)
 
+    # `valeur` porte l'etalon sous un nom neutre : les modules de figures
+    # lisent la meme colonne quel que soit le fichier ouvert.
+    df = df.assign(valeur=df[colonne])
     colonnes_sortie = [
-        "uai", "nom", "secteur", "ep", "ips",
-        "ips_seuil", "score_ecart_ips", "type_ecart",
-        "ips_seuil_academie", "score_ecart_academie", "type_ecart_academie",
+        "uai", "nom", "secteur", "ep", "valeur",
+        "seuil", "score_ecart", "type_ecart",
+        "seuil_academie", "score_ecart_academie", "type_ecart_academie",
         "code_commune", "nom_commune", "code_departement", "departement",
         "code_academie", "academie", "latitude", "longitude"]
 
-    chemin = DOSSIER_TABLES / "score_ecart_ips.csv"
+    chemin = DOSSIER_TABLES / fichier_scores(cle)
     df[colonnes_sortie].to_csv(chemin, index=False, encoding="utf-8")
     print(f"\n[+] {chemin.name} ({len(df)} colleges)")
-    print(f"    seuil national   : {(df['score_ecart_ips'] > 0).sum()} a score non nul")
+    print(f"    seuil national   : {(df['score_ecart'] > 0).sum()} a score non nul")
     print(f"    seuil academique : {(df['score_ecart_academie'] > 0).sum()} "
           f"a score non nul")
 
-    chemin = DOSSIER_TABLES / "score_ecart_par_academie.csv"
+    chemin = DOSSIER_TABLES / fichier_academies(cle)
     academies.to_csv(chemin, index=False, encoding="utf-8")
     print(f"[+] {chemin.name} ({len(academies)} lignes)")
+
+
+def main() -> None:
+    base = restreindre_au_public(charger())
+    if base["code_academie"].isna().any():
+        print(f"  ATTENTION : {base['code_academie'].isna().sum()} colleges "
+              f"sans academie renseignee")
+
+    for cle in ETALONS:
+        traiter(base, cle)
 
 
 if __name__ == "__main__":
