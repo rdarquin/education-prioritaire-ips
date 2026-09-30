@@ -119,6 +119,7 @@ uv run python -m src.distribution_ips
 uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
 uv run python -m src.carte_enveloppe
+uv run python -m src.ratios_enveloppe
 ```
 
 Chaque module de figures produit **deux versions de chaque visuel** : une sur l'IPS,
@@ -141,6 +142,7 @@ une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le
 | `src/distribution_ecart.py` | distribution de l'écart au seuil et sa répartition par plage |
 | `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
 | `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus bas |
+| `src/ratios_enveloppe.py` | les ratios des deux étalons face à face, académie par académie |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -331,6 +333,17 @@ de 1, une autre le perd.
 **Commentaire à ajouter moi meme**
 
 ![Ratio entre places reçues et collèges au score de 6e le plus bas, par académie](outputs/figures/ratio_enveloppe_academies_eval6.png)
+
+**Commentaire à ajouter moi meme**
+
+#### Les deux étalons donnent-ils le même diagnostic ?
+
+Les deux cartes ci-dessus ne se comparent pas facilement : on ne lit pas un déplacement
+en confrontant deux teintes sur deux fonds distincts. La figure suivante met donc les
+deux ratios face à face, une ligne par académie, et c'est le **segment qui les relie**
+qui porte l'information.
+
+![Ratio d'enveloppe de chaque académie sous les deux étalons](outputs/figures/ratios_enveloppe_etalons.png)
 
 **Commentaire à ajouter moi meme**
 
