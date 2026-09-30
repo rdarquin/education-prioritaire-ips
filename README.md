@@ -137,7 +137,7 @@ uv run python -m src.comparaison_etalons
 | `src/distribution_ecart.py` | distribution de l'écart au seuil, en points d'IPS, et sa répartition par plage |
 | `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
 | `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus défavorisés |
-| `src/comparaison_etalons.py` | confronte l'IPS et les résultats au DNB comme étalons de ciblage |
+| `src/comparaison_etalons.py` | confronte l'IPS et les résultats au DNB comme étalons de ciblage, aux échelles nationale et académique |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -324,6 +324,82 @@ serait un artefact de l'indicateur, pas un résultat.
 
 **Commentaire à ajouter moi meme**
 
+### La note au DNB est un étalon nettement moins fiable que l'IPS
+
+Avant d'interpréter quoi que ce soit, il fallait savoir si cet étalon tient. Un
+indicateur qui décrit une propriété durable d'un établissement doit donner à peu près
+la même valeur chaque année. Le test est donc simple : refaire le calcul avec la
+session précédente.
+
+| Étalon | Corrélation d'une année sur l'autre | Collèges désignés qui changent |
+|---|---:|---:|
+| **IPS** | **+0,993** | **6,0 %** |
+| Note à l'écrit du DNB | +0,848 | **24,7 %** |
+| Taux de réussite au DNB | +0,657 | — |
+
+**Un quart de l'ensemble désigné par la note change selon l'année retenue**, contre
+6 % pour l'IPS. La raison est mécanique : la note est une moyenne sur une centaine
+d'élèves, et ce sont d'autres élèves chaque année. L'IPS décrit un environnement
+social, qui ne bouge pas d'une rentrée à l'autre.
+
+Deux sources à cette instabilité, et j'ai pu les séparer. D'abord le **bruit
+d'échantillonnage** : avec environ 108 candidats par collège et un écart-type
+individuel de l'ordre de 3,5 points, l'erreur-type de la moyenne vaut 0,34 point,
+soit **24 % de l'écart-type entre établissements** — 35 % pour un collège du premier
+décile d'effectif. Ensuite une **variation réelle de cohorte**, qui explique le
+reste : elle est authentique, mais c'est une propriété de l'année, pas de
+l'établissement.
+
+Le désaccord entre les deux étalons, lui, **n'est pas du bruit**. Lisser la note sur
+quatre sessions — ce qui divise le bruit, vérification faite : la corrélation
+test-retest passe de 0,848 à 0,917 — ne fait monter le recouvrement avec l'IPS que de
+**66,0 % à 71,7 %**. Il plafonne. Environ un sixième du désaccord est accidentel ;
+les cinq sixièmes sont structurels.
+
+Une crainte s'est en revanche révélée infondée. L'IVAC ne publie la note que pour la
+série générale, ce qui exclut les élèves de SEGPA — j'ai vérifié que cela ne biaise
+pas les collèges qui en accueillent : corrélation entre la note en série générale et
+la part de présents en SEGPA, **−0,031**.
+
+### Pourquoi le classement est recalculé académie par académie
+
+Le brevet est corrigé par les enseignants, dans des commissions d'harmonisation
+**académiques**. Rien ne garantit qu'un 10 à Créteil soit un 10 à Rennes — et la
+mesure dit que non. En régressant la note sur l'IPS au niveau collège, puis en
+moyennant les résidus par académie :
+
+| Académie | IPS moyen | Note moyenne | Écart à l'attendu |
+|---|---:|---:|---:|
+| **Mayotte** | 71,9 | 10,53 | **+2,16** |
+| Besançon | 98,6 | 10,87 | +0,60 |
+| … | | | |
+| Martinique | 93,6 | 8,83 | −1,09 |
+| Guadeloupe | 92,7 | 8,25 | −1,60 |
+| **Guyane** | 77,8 | 6,24 | **−2,55** |
+
+L'étendue atteint **4,71 points, soit plus de trois fois l'écart-type entre
+établissements** (1,39). Autrement dit : l'effet académie est plus grand que toute la
+dispersion qu'on prétend mesurer entre collèges. Enseigne-t-on mieux à Mayotte, ou
+y corrige-t-on moins sévèrement ? **Ces données ne permettent pas de trancher.**
+
+La conséquence était directe et disqualifiait la première version de la carte : les
+deux départements extrêmes y étaient **Mayotte** (59,1 % désignés par l'IPS seul) et
+la **Guadeloupe** (54,8 % par la note seule) — c'est-à-dire exactement les deux
+académies les plus atypiques. La carte affichait un régime de correction en le faisant
+passer pour une différence de situation scolaire.
+
+D'où la variante académique, qui existe déjà pour l'IPS et répond ici à une objection
+précise : **chaque académie désigne ses propres collèges les plus bas, sur sa propre
+enveloppe.** Un collège n'est jamais comparé qu'à des collèges corrigés par la même
+commission, et le biais disparaît par construction. Le recouvrement entre les deux
+étalons monte de 66,0 % à **69,9 %**, et **541 collèges (10,3 % du champ) changent de
+verdict** en passant d'une variante à l'autre.
+
+La carte porte donc la variante académique. Les DROM en ont disparu — les départements
+les plus en désaccord sont désormais l'Aisne, les Ardennes, l'Yonne et la
+Seine-Saint-Denis d'un côté, l'Yonne, l'Eure, la Haute-Saône et l'Oise de l'autre.
+C'est la preuve la plus directe que l'artefact a été retiré.
+
 ![Où les deux étalons se contredisent](outputs/figures/desaccord_etalons.png)
 
 **Commentaire à ajouter moi meme**
@@ -343,10 +419,12 @@ elle n'évalue pas l'efficacité du dispositif, et aucun des deux étalons n'a r
 contre l'autre.
 
 Second point de prudence, propre à cet étalon : là où **11 collèges** seulement
-partagent la valeur exacte du seuil d'IPS, ils sont **91** sur la note. Pour
-ceux-là, l'appartenance aux dernières places tient à l'ordre de tri et non à la
-donnée. Ils sont marqués `frontiere_note` dans le fichier de sortie et ne sont pas
-départagés par l'IPS — ce qui reviendrait à contaminer un étalon par l'autre.
+partagent la valeur exacte du seuil national d'IPS, ils sont **91** sur la note — et
+124 au total sur les trente seuils académiques. Pour ceux-là, l'appartenance aux
+dernières places tient à l'ordre de tri et non à la donnée. Ils sont marqués
+`frontiere_note` dans le fichier de sortie et ne sont pas départagés par l'IPS — ce
+qui reviendrait à contaminer un étalon par l'autre. Le tri préalable par UAI rend au
+moins ce choix arbitraire reproductible.
 
 ## Limites
 

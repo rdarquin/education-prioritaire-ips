@@ -42,6 +42,51 @@ qui ne se distingue plus par ses resultats peut aussi bien n'avoir jamais eu
 besoin d'aide qu'avoir ete aide efficacement ; rien ici ne permet de trancher.
 Ce module compare deux instruments, il n'evalue pas la politique.
 
+DEUX VARIANTES, ET LA SECONDE N'EST PAS UN RAFFINEMENT
+
+Comme `score_ecart.py`, ce module calcule deux variantes cote a cote : un
+classement NATIONAL, et un classement ACADEMIQUE ou chaque academie designe
+ses propres colleges les plus bas, sur sa propre enveloppe.
+
+Ici la variante academique repond en plus a une objection precise, et c'est la
+raison principale de son existence. Le brevet est corrige par les enseignants,
+dans des commissions d'harmonisation ACADEMIQUES. Rien ne garantit qu'un 10 a
+Creteil soit un 10 a Rennes — et la mesure montre que non : l'ecart moyen entre
+la note observee et celle que l'IPS laisse attendre va de -2,55 point en Guyane
+a +2,16 a Mayotte, soit une etendue de 4,71 points, plus de TROIS FOIS
+l'ecart-type inter-etablissement (1,39). Recentrer chaque academie sur sa propre
+norme ferait changer de statut 208 colleges sur 1 088.
+
+Un classement national de la note melange donc deux choses qu'on ne peut pas
+separer : la situation scolaire reelle, et la severite locale de la correction.
+La variante academique fait disparaitre le probleme par construction, puisqu'un
+college n'y est jamais compare qu'a des colleges corriges par la meme
+commission.
+
+LA NOTE EST UN ETALON NETTEMENT MOINS FIABLE QUE L'IPS
+
+Trois mesures, a garder en tete avant d'interpreter quoi que ce soit :
+
+  - STABILITE. D'une session a l'autre, la note d'un college correle a +0,848
+    avec elle-meme (72 % de variance partagee), contre +0,993 pour l'IPS
+    (99 %). Traduit en designations : 24,7 % de l'ensemble designe par la note
+    change selon l'annee retenue, contre 6,0 % pour l'IPS. Le taux de reussite,
+    lui, ne correle qu'a +0,657 — d'ou son rejet.
+
+  - BRUIT D'ECHANTILLONNAGE. La note est une moyenne sur environ 108 candidats.
+    Avec un ecart-type individuel de l'ordre de 3,5 points, l'erreur-type de
+    cette moyenne vaut 0,34 point, soit 24 % de l'ecart-type
+    inter-etablissement — et 35 % pour un college du premier decile d'effectif.
+
+  - MAIS LE DESACCORD N'EST PAS DU BRUIT. Lisser la note sur quatre sessions,
+    ce qui divise le bruit, ne fait passer le recouvrement avec l'IPS que de
+    66,0 % a 71,7 %. Il plafonne. Environ un sixieme du desaccord est
+    accidentel ; les cinq sixiemes sont structurels.
+
+Une crainte s'est en revanche revelee infondee : l'exclusion de la serie
+professionnelle (SEGPA) ne biaise pas la note. Correlation entre la note en
+serie generale et la part de presents en SEGPA : -0,031.
+
 LES EX AEQUO
 
 L'ensemble optimal est defini par le RANG, comme dans `score_ecart.py`. L'IPS
@@ -86,6 +131,14 @@ GRIS_ABSENT = "#e3e3e3"
 MIN_ETABLISSEMENTS = 20
 
 N_CLASSES = 6
+
+# Les deux variantes, dans l'ordre d'affichage. La valeur est la liste des
+# colonnes de regroupement : vide pour un classement national, l'academie pour
+# un classement recalcule academie par academie.
+VARIANTES = {
+    "national": [],
+    "académique": ["code_academie"],
+}
 
 # Les quatre verdicts croises. L'ordre est celui des tableaux et de la legende,
 # et il va du plus consensuel au plus discutable.
@@ -141,84 +194,128 @@ def charger() -> pd.DataFrame:
     return complet.sort_values("uai").reset_index(drop=True)
 
 
-def designer(df: pd.DataFrame, etalon: str, n: int) -> tuple[pd.Series, float, int]:
-    """Reconstitue l'ensemble optimal sous un etalon, a enveloppe donnee.
+def designer(df: pd.DataFrame, etalon: str,
+             groupes: list[str]) -> tuple[pd.Series, dict]:
+    """Reconstitue l'ensemble optimal sous un etalon, a enveloppe observee.
+
+    Sans `groupes`, l'enveloppe est nationale : on retient les n colleges les
+    plus bas du pays, n etant le nombre de classes. Avec `groupes`, le calcul
+    est refait A L'INTERIEUR de chaque groupe, sur l'enveloppe de ce groupe.
+    Un college n'y est donc jamais compare qu'a ses voisins de groupe.
+
+    L'ensemble est defini par le RANG et non par une inegalite sur le seuil.
+    C'est ce qui garantit que les deux etalons designent exactement le meme
+    NOMBRE de colleges, condition sans laquelle les recouvrements ne seraient
+    pas comparables.
 
     Args:
-        df: le champ de la comparaison.
-        etalon: nom de la colonne servant de classement (valeur basse = designe).
-        n: nombre de places a pourvoir.
+        df: le champ de la comparaison, trie par UAI.
+        etalon: colonne servant de classement (valeur basse = designe).
+        groupes: colonnes de regroupement, vide pour un classement national.
 
     Returns:
-        Un triplet (appartenance booleenne, valeur du seuil, nombre d'ex aequo
-        a cette valeur).
+        L'appartenance booleenne, et un dictionnaire {seuils, exaequo} ou les
+        seuils sont la liste des valeurs qui ferment chaque enveloppe.
     """
-    retenus = df.nsmallest(n, etalon)
-    seuil = retenus[etalon].max()
-    exaequo = int((df[etalon] == seuil).sum())
-    return df["uai"].isin(retenus["uai"]), float(seuil), exaequo
+    parts = df.groupby(groupes, sort=False) if groupes else [(None, df)]
+    retenus, seuils, exaequo = set(), [], 0
+
+    for _, part in (parts if groupes else parts):
+        n = int(part["classe_ep"].sum())
+        if not n:
+            continue
+        choisis = part.nsmallest(n, etalon)
+        seuil = float(choisis[etalon].max())
+        retenus |= set(choisis["uai"])
+        seuils.append(seuil)
+        # Ex aequo a la valeur qui ferme CETTE enveloppe : leur presence parmi
+        # les dernieres places tient a l'ordre de tri, pas a la donnee.
+        exaequo += int((part[etalon] == seuil).sum())
+
+    return df["uai"].isin(retenus), {"seuils": seuils, "exaequo": exaequo}
 
 
 def croiser(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """Croise les deux etalons et attribue son verdict a chaque college.
+    """Croise les deux etalons, dans chacune des deux variantes.
 
     Returns:
-        La table augmentee, et un dictionnaire des parametres du calcul
-        (enveloppe, seuils, ex aequo) a reutiliser dans les notes de figure.
+        La table augmentee de deux colonnes `verdict_*`, et un dictionnaire
+        des parametres de chaque variante, a reutiliser dans les notes.
     """
+    df = df.copy()
+    df["classe_ep"] = df["ep"] != "hors EP"
+
     # L'enveloppe est le nombre de classes DANS LE CHAMP, et non les 1 094
     # places nationales : quelques colleges classes n'ont pas de resultat au
     # DNB et sortent de la comparaison. Garder 1 094 ferait designer par chaque
     # etalon plus de colleges qu'il n'y a de places reellement observees.
-    n = int((df["ep"] != "hors EP").sum())
+    n = int(df["classe_ep"].sum())
+    params = {}
 
-    df = df.copy()
-    df["designe_ips"], seuil_ips, exaequo_ips = designer(df, "ips", n)
-    df["designe_note"], seuil_note, exaequo_note = designer(
-        df, "note_ecrit_dnb", n)
+    for variante, groupes in VARIANTES.items():
+        suffixe = "" if variante == "national" else "_academie"
 
-    # Un college est "a la frontiere" quand sa valeur egale exactement celle
-    # qui ferme l'enveloppe : son sort tient alors au tri, pas a la donnee.
-    df["frontiere_ips"] = df["ips"] == seuil_ips
-    df["frontiere_note"] = df["note_ecrit_dnb"] == seuil_note
+        ips, info_ips = designer(df, "ips", groupes)
+        note, info_note = designer(df, "note_ecrit_dnb", groupes)
+        df[f"designe_ips{suffixe}"] = ips
+        df[f"designe_note{suffixe}"] = note
 
-    df["verdict"] = np.select(
-        [df["designe_ips"] & df["designe_note"],
-         df["designe_ips"] & ~df["designe_note"],
-         ~df["designe_ips"] & df["designe_note"]],
-        ["accord : à classer", "IPS seul", "note seule"],
-        default="accord : hors")
+        df[f"verdict{suffixe}"] = np.select(
+            [ips & note, ips & ~note, ~ips & note],
+            ["accord : à classer", "IPS seul", "note seule"],
+            default="accord : hors")
 
-    df["classe_ep"] = df["ep"] != "hors EP"
+        params[variante] = {
+            "suffixe": suffixe,
+            "n": n,
+            "designes": int(ips.sum()),
+            "communs": int((ips & note).sum()),
+            "seuils_ips": info_ips["seuils"],
+            "seuils_note": info_note["seuils"],
+            "exaequo_ips": info_ips["exaequo"],
+            "exaequo_note": info_note["exaequo"],
+        }
 
-    params = {"n": n, "seuil_ips": seuil_ips, "seuil_note": seuil_note,
-              "exaequo_ips": exaequo_ips, "exaequo_note": exaequo_note,
-              "communs": int((df["designe_ips"] & df["designe_note"]).sum())}
+    # Marquage des ex aequo de la variante nationale, ou le seuil est unique :
+    # c'est la seule variante ou une colonne booleenne a un sens simple.
+    df["frontiere_ips"] = df["ips"] == params["national"]["seuils_ips"][0]
+    df["frontiere_note"] = (df["note_ecrit_dnb"]
+                            == params["national"]["seuils_note"][0])
+
+    # Combien de colleges changent de verdict en passant d'une variante a
+    # l'autre ? C'est la mesure de ce que le recentrage academique deplace.
+    params["bascules"] = int((df["verdict"] != df["verdict_academie"]).sum())
     return df, params
 
 
-def resumer(df: pd.DataFrame, params: dict) -> pd.DataFrame:
-    """Tableau des quatre verdicts : effectif, classement reel, profil moyen."""
-    table = df.groupby("verdict").agg(
+def resumer(df: pd.DataFrame, suffixe: str) -> pd.DataFrame:
+    """Tableau des quatre verdicts d'une variante : effectif, classement, profil."""
+    colonne = f"verdict{suffixe}"
+    table = df.groupby(colonne).agg(
         colleges=("uai", "size"),
         classes_ep=("classe_ep", "sum"),
         ips_moyen=("ips", "mean"),
         note_moyenne=("note_ecrit_dnb", "mean"),
-        frontiere=("frontiere_note", "sum"),
     )
     table["part_classes"] = 100 * table["classes_ep"] / table["colleges"]
     table["part_colleges"] = 100 * table["colleges"] / len(df)
     return table.reindex(GROUPES.keys())
 
 
-def agreger(df: pd.DataFrame) -> pd.DataFrame:
-    """Part de chaque type de desaccord, par departement."""
+def agreger(df: pd.DataFrame, suffixe: str) -> pd.DataFrame:
+    """Part de chaque type de desaccord, par departement, pour une variante.
+
+    Un departement releve d'une seule academie : agreger des verdicts calcules
+    a l'echelle academique au niveau departemental reste donc coherent, chaque
+    departement heritant de la norme d'une academie unique.
+    """
+    colonne = f"verdict{suffixe}"
     dep = df.groupby(["code_departement", "departement"]).agg(
         colleges=("uai", "size"),
         classes=("classe_ep", "sum"),
-        ips_seul=("verdict", lambda s: (s == "IPS seul").sum()),
-        note_seule=("verdict", lambda s: (s == "note seule").sum()),
-        accord_classer=("verdict", lambda s: (s == "accord : à classer").sum()),
+        ips_seul=(colonne, lambda s: (s == "IPS seul").sum()),
+        note_seule=(colonne, lambda s: (s == "note seule").sum()),
+        accord_classer=(colonne, lambda s: (s == "accord : à classer").sum()),
     ).reset_index()
 
     dep["part_ips_seul"] = 100 * dep["ips_seul"] / dep["colleges"]
@@ -237,12 +334,19 @@ def agreger(df: pd.DataFrame) -> pd.DataFrame:
 # Figures
 # ---------------------------------------------------------------------------
 
-def figure_nuage(df: pd.DataFrame, table: pd.DataFrame, params: dict) -> None:
-    """Nuage IPS x note du DNB, quadrants, et tableau des quatre verdicts."""
-    fig = plt.figure(figsize=(11, 11.0))
-    grille = fig.add_gridspec(2, 1, height_ratios=[3.1, 0.82],
-                              left=0.075, right=0.975, top=0.858, bottom=0.205,
-                              hspace=0.15)
+def figure_nuage(df: pd.DataFrame, tables: dict, params: dict) -> None:
+    """Nuage IPS x note du DNB, quadrants, et tableau des deux variantes.
+
+    Le nuage porte les seuils NATIONAUX, les seuls qu'on puisse tracer comme
+    deux droites. La variante academique en compte trente de chaque cote : elle
+    se lit dans le second bloc du tableau, pas sur le nuage.
+    """
+    national = params["national"]
+
+    fig = plt.figure(figsize=(11, 12.2))
+    grille = fig.add_gridspec(2, 1, height_ratios=[2.7, 1.25],
+                              left=0.075, right=0.975, top=0.872, bottom=0.185,
+                              hspace=0.14)
     ax = fig.add_subplot(grille[0])
     axt = fig.add_subplot(grille[1])
 
@@ -254,16 +358,18 @@ def figure_nuage(df: pd.DataFrame, table: pd.DataFrame, params: dict) -> None:
                    c=GROUPES[nom]["couleur"], alpha=0.55, linewidths=0,
                    label=f"{nom} ({len(sous)})")
 
-    ax.axvline(params["seuil_ips"], color=ENCRE, linewidth=1.1, zorder=5)
-    ax.axhline(params["seuil_note"], color=ENCRE, linewidth=1.1, zorder=5)
+    seuil_ips = national["seuils_ips"][0]
+    seuil_note = national["seuils_note"][0]
+    ax.axvline(seuil_ips, color=ENCRE, linewidth=1.1, zorder=5)
+    ax.axhline(seuil_note, color=ENCRE, linewidth=1.1, zorder=5)
 
-    seuil_ips_txt = f"{params['seuil_ips']:.2f}".replace(".", ",")
-    seuil_note_txt = f"{params['seuil_note']:.1f}".replace(".", ",")
+    seuil_ips_txt = f"{seuil_ips:.2f}".replace(".", ",")
+    seuil_note_txt = f"{seuil_note:.1f}".replace(".", ",")
     ax.annotate(f"seuil IPS {seuil_ips_txt}",
-                xy=(params["seuil_ips"], ax.get_ylim()[1]), xytext=(4, -10),
+                xy=(seuil_ips, ax.get_ylim()[1]), xytext=(4, -10),
                 textcoords="offset points", fontsize=8, color=ENCRE, va="top")
     ax.annotate(f"seuil note {seuil_note_txt}",
-                xy=(ax.get_xlim()[1], params["seuil_note"]), xytext=(-4, 4),
+                xy=(ax.get_xlim()[1], seuil_note), xytext=(-4, 4),
                 textcoords="offset points", fontsize=8, color=ENCRE,
                 ha="right")
 
@@ -277,29 +383,37 @@ def figure_nuage(df: pd.DataFrame, table: pd.DataFrame, params: dict) -> None:
                         framealpha=0.95, edgecolor=GRILLE, markerscale=2.6)
     legende.get_frame().set_linewidth(0.6)
 
-    # ---- tableau ----------------------------------------------------------
+    # ---- tableau : les deux variantes, l'une sous l'autre -----------------
     axt.set_axis_off()
-    entetes = ["", "collèges", "% du champ", "classés EP", "% classés",
-               "IPS moyen", "note moyenne"]
-    lignes = []
-    for nom in GROUPES:
-        ligne = table.loc[nom]
-        lignes.append([
-            nom,
-            f"{int(ligne['colleges'])}",
-            f"{ligne['part_colleges']:.1f} %".replace(".", ","),
-            f"{int(ligne['classes_ep'])}",
-            f"{ligne['part_classes']:.1f} %".replace(".", ","),
-            f"{ligne['ips_moyen']:.1f}".replace(".", ","),
-            f"{ligne['note_moyenne']:.1f}".replace(".", ","),
-        ])
+    entetes = ["étalon", "", "collèges", "% du champ", "classés EP",
+               "% classés", "IPS moyen", "note moyenne"]
+    lignes, couleurs_libelle = [], []
+    for variante in VARIANTES:
+        table = tables[variante]
+        for rang, nom in enumerate(GROUPES):
+            ligne = table.loc[nom]
+            lignes.append([
+                variante if rang == 0 else "",
+                nom,
+                f"{int(ligne['colleges'])}",
+                f"{ligne['part_colleges']:.1f} %".replace(".", ","),
+                f"{int(ligne['classes_ep'])}",
+                f"{ligne['part_classes']:.1f} %".replace(".", ","),
+                f"{ligne['ips_moyen']:.1f}".replace(".", ","),
+                f"{ligne['note_moyenne']:.1f}".replace(".", ","),
+            ])
+            couleurs_libelle.append(GROUPES[nom]["couleur"])
 
+    # Largeurs explicites : laissees a matplotlib, elles sont uniformes et la
+    # colonne des verdicts tronque son libelle le plus long.
     tab = axt.table(cellText=lignes, colLabels=entetes, loc="upper center",
-                    cellLoc="right", colLoc="right")
+                    cellLoc="right", colLoc="right",
+                    colWidths=[0.12, 0.20, 0.10, 0.12, 0.12, 0.11, 0.11, 0.12])
     tab.auto_set_font_size(False)
-    tab.set_fontsize(9)
-    tab.scale(1, 1.75)
+    tab.set_fontsize(8.5)
+    tab.scale(1, 1.5)
 
+    bloc = len(GROUPES)
     for (ligne, colonne), cellule in tab.get_celld().items():
         cellule.set_edgecolor("white")
         cellule.set_linewidth(1.2)
@@ -307,47 +421,64 @@ def figure_nuage(df: pd.DataFrame, table: pd.DataFrame, params: dict) -> None:
             cellule.set_facecolor(GRILLE)
             cellule.set_text_props(color=ENCRE, fontweight="bold")
         else:
-            cellule.set_facecolor("#f7f6f2" if ligne % 2 else "white")
+            # Un fond distinct par variante, plutot qu'une alternance : c'est
+            # la separation des deux blocs qui doit sauter aux yeux.
+            cellule.set_facecolor("white" if ligne <= bloc else "#f5f3ee")
         if colonne == 0:
-            cellule.set_text_props(ha="left")
-            cellule.PAD = 0.04
-            if ligne > 0:
-                # Pastille de couleur : la ligne du tableau et le nuage
-                # doivent se lire l'un par l'autre sans effort.
-                cellule.set_text_props(
-                    color=GROUPES[list(GROUPES)[ligne - 1]]["couleur"],
-                    fontweight="bold")
+            cellule.set_text_props(ha="left", color=ENCRE_2,
+                                   fontweight="bold")
+        if colonne == 1 and ligne > 0:
+            # Le libelle reprend la couleur du nuage : la ligne du tableau et
+            # le graphe doivent se lire l'un par l'autre sans effort.
+            cellule.set_text_props(ha="left",
+                                   color=couleurs_libelle[ligne - 1],
+                                   fontweight="bold")
 
     fig.suptitle("Deux étalons désignent-ils les mêmes collèges ?\n"
                  "IPS et résultats au DNB, à enveloppe identique",
-                 fontsize=14, fontweight="bold", x=0.02, ha="left", y=0.978)
+                 fontsize=14, fontweight="bold", x=0.02, ha="left", y=0.980)
 
-    n_txt = f"{params['n']:,}".replace(",", " ")
-    part_communs = 100 * params["communs"] / params["n"]
-    part_txt = f"{part_communs:.1f}".replace(".", ",")
-    fig.text(0.02, 0.918,
+    academique = params["académique"]
+    n_txt = f"{national['n']:,}".replace(",", " ")
+    part_nat = f"{100 * national['communs'] / national['n']:.1f}".replace(".", ",")
+    part_aca = f"{100 * academique['communs'] / academique['n']:.1f}".replace(
+        ".", ",")
+    fig.text(0.02, 0.930,
              f"Chaque étalon désigne les {n_txt} collèges publics les plus bas de "
              f"son classement — le nombre exact de places d'éducation prioritaire "
              f"observées dans le champ.\n"
              f"Les deux ensembles ont donc la même taille et sont directement "
-             f"comparables. Ils partagent {params['communs']} collèges, "
-             f"soit {part_txt} % : un tiers des désignations change avec l'étalon.",
+             f"comparables. Ils ne partagent que {national['communs']} collèges, "
+             f"soit {part_nat} % :\n"
+             f"un tiers des désignations change avec l'étalon. Recalculé académie "
+             f"par académie, le recouvrement monte à {part_aca} % — et c'est cette "
+             f"variante qu'il faut lire,\n"
+             f"pour la raison exposée sous le tableau.",
              fontsize=9, va="top", color=ENCRE_2)
 
-    exa_ips = params["exaequo_ips"]
-    exa_note = params["exaequo_note"]
-    fig.text(0.02, 0.163,
+    exa_ips = national["exaequo_ips"]
+    exa_note = national["exaequo_note"]
+    fig.text(0.02, 0.157,
              "Lecture : en bas à gauche, les collèges que les deux étalons "
              "désignent ; en haut à droite, ceux qu'aucun ne désigne. Les deux "
              "autres quadrants sont les désaccords.\n"
              "En haut à gauche, des collèges socialement défavorisés dont les "
              "résultats tiennent ; en bas à droite, des résultats faibles sans "
              "désavantage social apparent.\n"
-             f"Ex æquo à la valeur du seuil : {exa_ips} sur l'IPS, {exa_note} sur "
-             "la note. Pour ces derniers, l'appartenance aux dernières places "
-             "tient à l'ordre de tri et non à la donnée ;\n"
-             "ils ne sont pas départagés par l'autre étalon, ce qui reviendrait à "
-             "le contaminer.\n"
+             "Les deux droites sont les seuils NATIONAUX, les seuls qu'on puisse "
+             "tracer. La variante académique en compte trente de chaque côté : "
+             "elle se lit dans le tableau, pas sur le nuage.\n"
+             "Pourquoi elle compte : le brevet est corrigé dans des commissions "
+             "académiques, et l'écart entre la note observée et celle que l'IPS "
+             "laisse attendre va de −2,6 point en Guyane\n"
+             "à +2,2 à Mayotte — plus de trois fois l'écart-type entre "
+             "établissements. Un classement national de la note mélange donc la "
+             "situation scolaire et la sévérité locale de la correction.\n"
+             f"Ex æquo à la valeur du seuil national : {exa_ips} sur l'IPS, "
+             f"{exa_note} sur la note. Pour ces derniers, l'appartenance aux "
+             "dernières places tient à l'ordre de tri et non à la donnée ; ils ne "
+             "sont pas\n"
+             "départagés par l'autre étalon, ce qui reviendrait à le contaminer.\n"
              "Réserve décisive : l'IPS se mesure en amont de la politique, les "
              "résultats au DNB en aval. Un collège en REP+ dispose de moyens "
              "supplémentaires, sa note en porte la trace.\n"
@@ -365,14 +496,26 @@ def figure_nuage(df: pd.DataFrame, table: pd.DataFrame, params: dict) -> None:
     print(f"  [+] {chemin.name}")
 
 
-def figure_cartes(dep: pd.DataFrame, contours) -> None:
-    """Les deux desaccords, cartographies cote a cote."""
+def figure_cartes(dep: pd.DataFrame, contours, params: dict) -> None:
+    """Les deux desaccords, cartographies cote a cote, en variante academique.
+
+    La variante NATIONALE ne serait pas cartographiable honnetement. Les deux
+    departements extremes y etaient Mayotte (59,1 % designes par l'IPS seul) et
+    la Guadeloupe (54,8 % par la note seule) — c'est-a-dire exactement les deux
+    academies dont la note s'ecarte le plus de ce que leur IPS laisse attendre.
+    La carte aurait donc affiche un regime de correction en le faisant passer
+    pour une difference de situation scolaire.
+
+    En variante academique, chaque college n'est compare qu'a des colleges
+    corriges par la meme commission : ce qui reste est un desaccord entre les
+    deux etalons a l'interieur d'un meme bareme.
+    """
     gdf = contours.join(dep.set_index("code_departement"), how="left")
     fiable = gdf["colleges"].fillna(0) >= MIN_ETABLISSEMENTS
     n_masques = int((~fiable).sum())
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 8.8))
-    fig.subplots_adjust(left=0.01, right=0.99, top=0.855, bottom=0.235,
+    fig, axes = plt.subplots(1, 2, figsize=(13, 9.7))
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.868, bottom=0.285,
                         wspace=0.02)
 
     cartes = [
@@ -385,8 +528,8 @@ def figure_cartes(dep: pd.DataFrame, contours) -> None:
     ]
 
     for ax, (colonne, palette, titre, etiquette), position in zip(
-            axes, cartes, ([0.07, 0.185, 0.36, 0.014],
-                           [0.57, 0.185, 0.36, 0.014])):
+            axes, cartes, ([0.07, 0.232, 0.36, 0.013],
+                           [0.57, 0.232, 0.36, 0.013])):
         valeurs = gdf.loc[fiable, colonne].to_numpy()
         bornes = np.unique(np.round(
             np.quantile(valeurs, np.linspace(0, 1, N_CLASSES + 1)), 2))
@@ -408,28 +551,41 @@ def figure_cartes(dep: pd.DataFrame, contours) -> None:
                             fontsize=6.5)
         cax.set_xlabel(etiquette, fontsize=8, labelpad=4)
 
+    academique = params["académique"]
+    part_aca = f"{100 * academique['communs'] / academique['n']:.1f}".replace(
+        ".", ",")
+
     fig.suptitle("Où les deux étalons se contredisent-ils ?\n"
-                 "Collèges publics, rentrée 2024-2025",
+                 "Classement recalculé à l'intérieur de chaque académie — "
+                 "collèges publics, rentrée 2024-2025",
                  fontsize=13.5, fontweight="bold", x=0.02, ha="left", y=0.975)
 
-    fig.text(0.02, 0.128,
+    fig.text(0.02, 0.183,
              "À gauche : les collèges que l'IPS désigne et que les résultats au "
              "DNB ne désignent pas — socialement défavorisés, mais dont les "
-             "résultats tiennent.\n"
-             "À droite : l'inverse — des résultats parmi les plus faibles du pays "
-             "sans que l'IPS place l'établissement sous le seuil.\n"
-             "Les deux ensembles ont exactement la même taille au niveau "
-             "national : ce que l'un des étalons désigne en plus quelque part, il "
-             "le désigne en moins ailleurs.\n"
+             "résultats tiennent. À droite, l'inverse.\n"
+             "Chaque académie désigne ici ses propres collèges les plus bas, sur "
+             "sa propre enveloppe : un collège n'est jamais comparé qu'à des "
+             "collèges de son académie. C'est indispensable,\n"
+             "parce que le brevet est corrigé dans des commissions académiques : "
+             "un classement national de la note mélangerait la situation scolaire "
+             "et la sévérité locale de la correction, et ses\n"
+             "deux départements extrêmes étaient Mayotte et la Guadeloupe — "
+             "précisément les deux académies les plus atypiques sur ce point. À "
+             f"l'échelle académique, ce biais disparaît par\n"
+             f"construction, et le recouvrement entre les deux étalons monte de "
+             f"66,0 % à {part_aca} %.\n"
              "Les classes sont des quantiles de la distribution départementale : "
-             "quelques départements extrêmes écraseraient sinon tous les autres.\n"
-             f"En gris : {n_masques} départements comptant moins de "
+             "quelques départements extrêmes écraseraient sinon tous les autres. "
+             f"En gris, {n_masques} départements comptant moins de\n"
              f"{MIN_ETABLISSEMENTS} collèges publics du champ, ou sans donnée.\n"
-             "L'IPS se mesure en amont de la politique, les résultats en aval : "
-             "un désaccord ne dit pas lequel des deux étalons a raison.\n"
-             "Sources : DEPP (IPS, IVAC), annuaire de l'éducation, contours "
-             "Insee/cartiflette. DROM rapprochés, échelles et distances non "
-             "respectées.",
+             "L'IPS se mesure en amont de la politique, les résultats en aval : un "
+             "désaccord ne dit pas lequel des deux étalons a raison. La note est "
+             "aussi la moins stable des deux — un quart de\n"
+             "l'ensemble qu'elle désigne change selon la session retenue, contre "
+             "6 % pour l'IPS. Sources : DEPP (IPS, IVAC), annuaire de l'éducation, "
+             "contours Insee/cartiflette.\n"
+             "DROM rapprochés, échelles et distances non respectées.",
              fontsize=7.5, va="top", color=ENCRE_2)
 
     chemin = FIGURES / "desaccord_etalons.png"
@@ -448,32 +604,51 @@ def main() -> None:
 
     df, params = croiser(df)
 
-    seuil_ips = f"{params['seuil_ips']:.2f}".replace(".", ",")
-    seuil_note = f"{params['seuil_note']:.1f}".replace(".", ",")
-    print(f"\n  enveloppe observee : {params['n']} places")
-    print(f"  seuil IPS  : {seuil_ips} ({params['exaequo_ips']} ex aequo)")
-    print(f"  seuil note : {seuil_note} ({params['exaequo_note']} ex aequo)")
-    print(f"  colleges designes par les deux : {params['communs']} "
-          f"({100 * params['communs'] / params['n']:.1f} %)")
-
-    table = resumer(df, params)
-    print("\nLes quatre verdicts :")
     colonnes = ["colleges", "part_colleges", "classes_ep", "part_classes",
                 "ips_moyen", "note_moyenne"]
-    print(table[colonnes].round(1).to_string())
+    tables = {}
+    for variante, info in ((v, params[v]) for v in VARIANTES):
+        seuils_ips, seuils_note = info["seuils_ips"], info["seuils_note"]
+        print(f"\n--- variante {variante} ---")
+        print(f"  enveloppe observee : {info['n']} places, "
+              f"{info['designes']} designes par chaque etalon")
+        if len(seuils_ips) == 1:
+            print(f"  seuil IPS  : {seuils_ips[0]:.2f} "
+                  f"({info['exaequo_ips']} ex aequo)")
+            print(f"  seuil note : {seuils_note[0]:.1f} "
+                  f"({info['exaequo_note']} ex aequo)")
+        else:
+            print(f"  {len(seuils_ips)} seuils IPS  : "
+                  f"{min(seuils_ips):.1f} a {max(seuils_ips):.1f} "
+                  f"({info['exaequo_ips']} ex aequo cumules)")
+            print(f"  {len(seuils_note)} seuils note : "
+                  f"{min(seuils_note):.1f} a {max(seuils_note):.1f} "
+                  f"({info['exaequo_note']} ex aequo cumules)")
+        print(f"  designes par les deux : {info['communs']} "
+              f"({100 * info['communs'] / info['n']:.1f} %)")
+
+        tables[variante] = resumer(df, info["suffixe"])
+        print(tables[variante][colonnes].round(1).to_string())
+
+    print(f"\n{params['bascules']} colleges changent de verdict en passant du "
+          f"classement national au classement academique "
+          f"({100 * params['bascules'] / len(df):.1f} % du champ)")
 
     print("\nFigures :")
-    figure_nuage(df, table, params)
+    figure_nuage(df, tables, params)
 
     contours = charger_contours("FRANCE_ENTIERE_DROM_RAPPROCHES")
-    dep = agreger(df)
-    figure_cartes(dep, contours)
+    # La carte porte la variante ACADEMIQUE : voir la docstring de
+    # `figure_cartes` pour la raison, qui n'est pas cosmetique.
+    dep = agreger(df, params["académique"]["suffixe"])
+    figure_cartes(dep, contours, params)
 
     DOSSIER_TABLES.mkdir(parents=True, exist_ok=True)
     sortie = ["uai", "nom", "ep", "ips", "note_ecrit_dnb", "nb_candidats_dnb",
-              "designe_ips", "designe_note", "frontiere_ips", "frontiere_note",
-              "verdict", "code_departement", "departement", "code_academie",
-              "academie"]
+              "designe_ips", "designe_note", "verdict",
+              "designe_ips_academie", "designe_note_academie",
+              "verdict_academie", "frontiere_ips", "frontiere_note",
+              "code_departement", "departement", "code_academie", "academie"]
     df[sortie].to_csv(DOSSIER_TABLES / "comparaison_etalons.csv",
                       index=False, encoding="utf-8")
     dep.round(2).to_csv(DOSSIER_TABLES / "comparaison_etalons_par_departement.csv",
@@ -482,9 +657,10 @@ def main() -> None:
     assez = dep[dep["colleges"] >= MIN_ETABLISSEMENTS]
     vue = ["departement", "colleges", "ips_seul", "part_ips_seul",
            "note_seule", "part_note_seule"]
-    print("\n  desaccord le plus marque en faveur de l'IPS :")
+    print("\n  (variante academique) desaccord le plus marque en faveur de l'IPS :")
     print(assez.nlargest(6, "part_ips_seul")[vue].round(1).to_string(index=False))
-    print("\n  desaccord le plus marque en faveur des resultats :")
+    print("\n  (variante academique) desaccord le plus marque en faveur des "
+          "resultats :")
     print(assez.nlargest(6, "part_note_seule")[vue].round(1).to_string(index=False))
 
     print(f"\n[+] comparaison_etalons.csv ({len(df)} lignes)")
