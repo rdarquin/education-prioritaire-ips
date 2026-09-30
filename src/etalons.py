@@ -1,4 +1,4 @@
-"""Les deux etalons du projet, et les conventions de nommage qui vont avec.
+﻿"""Les deux etalons du projet, et les conventions de nommage qui vont avec.
 
 POURQUOI UN REGISTRE
 
@@ -57,8 +57,9 @@ ETALONS = {
         # du producteur de la donnee, pour le score de sixieme une simple
         # convention de comparabilite. La nuance doit apparaitre sur la figure.
         "justification_seuil":
-            "En deçà, la DEPP recommande de ne pas interpréter une différence "
-            "d'IPS.",
+            "en deçà, la DEPP recommande de ne pas interpréter une différence "
+            "d'IPS ; la borne haute est une convention, qui isole la queue "
+            "extrême.",
         # Pas de l'histogramme et arrondi d'affichage : l'IPS s'etale sur une
         # centaine de points, le score de sixieme sur plusieurs centaines.
         "pas_histogramme": 2.0,
@@ -75,10 +76,17 @@ ETALONS = {
         "unite_courte": "points",
         "axe": "Score aux évaluations nationales de début de 6ᵉ",
         "source": "DEPP (évaluations nationales de sixième)",
+        # La DEPP ne publie pas de seuil d'interpretabilite pour ce score, mais
+        # elle publie l'ecart-type des eleves de chaque college, ce qui permet
+        # de construire l'exact equivalent de sa regle des 3 points d'IPS.
         "justification_seuil":
-            "Aucune recommandation du producteur n'existe ici : la borne est "
-            "reprise de l'IPS, dont la dispersion entre établissements est "
-            "comparable (14,7 contre 16,9 points).",
+            "la DEPP ne publie pas de seuil pour ce score, mais l'écart-type "
+            "des élèves de chaque collège, lui, est publié : 46 points en "
+            "médiane pour 113 élèves évalués, soit une erreur-type de 4,3 sur "
+            "la moyenne des deux disciplines — elles corrèlent à +0,91, les "
+            "moyenner ne réduit presque pas l'erreur. La borne vaut deux "
+            "erreurs-types. La borne haute, elle, est calée sur la même rareté "
+            "que les 10 points d'IPS.",
         "pas_histogramme": 5.0,
         "decimales": 1,
     },

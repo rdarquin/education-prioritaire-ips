@@ -222,6 +222,23 @@ Ces deux cas sont de sens opposé : **oubli** (sous le seuil, non classé) et
 
 ### La distribution de l'écart au seuil
 
+Les deux figures qui suivent n'utilisent **pas les mêmes bornes**, et c'est volontaire.
+Pour l'IPS, les 3 points sont la recommandation de la DEPP — en deçà, une différence
+n'est pas interprétable — et les 10 points une convention qui isole la queue extrême.
+
+Pour le score de 6ᵉ, la DEPP ne publie aucun seuil. Mais elle publie l'**écart-type des
+élèves de chaque collège**, ce qui permet de construire l'équivalent exact : 46 points
+en médiane pour 113 élèves évalués, soit une **erreur-type de 4,3** sur la moyenne des
+deux disciplines — elles corrèlent à +0,91, les moyenner ne réduit presque pas l'erreur.
+Deux erreurs-types donnent **8 points**. La borne haute, elle, est calée sur la même
+rareté que les 10 points d'IPS : **20 points**.
+
+Reprendre 3 et 10 aurait été une faute. Ces bornes plaçaient **8,9 %** des collèges hors
+de la bande centrale contre 4,8 % pour l'IPS : elles faisaient paraître le score de 6ᵉ
+deux fois plus en désaccord avec la carte réelle qu'il ne l'est, uniquement parce
+qu'elles sont trop serrées pour une mesure plus bruitée. Avec 8 et 20, les cinq plages
+retombent à un point de celles de l'IPS.
+
 ![Distribution de l'écart d'IPS au seuil budgétaire](outputs/figures/distribution_ecart.png)
 
 **Commentaire à ajouter moi meme**

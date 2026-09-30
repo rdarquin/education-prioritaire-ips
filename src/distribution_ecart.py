@@ -38,6 +38,8 @@ import matplotlib
 
 matplotlib.use("Agg")  # backend sans fenetre : on ecrit des fichiers
 
+import textwrap
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -47,11 +49,33 @@ from src.etalons import ETALONS, fichier_scores, nom_figure
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
-# Seuil d'interpretabilite de l'IPS recommande par la DEPP. Sert ici de repere
-# visuel et de borne interieure du tableau, pas de filtre : la figure montre
-# toute la distribution.
-SEUIL_INTERPRETABLE = 3.0
-SEUIL_FORT = 10.0
+# Bornes du tableau, propres a chaque etalon. Reperes visuels et bornes de
+# plages, jamais des filtres : la figure montre toute la distribution.
+#
+# POUR L'IPS, les 3 points sont la recommandation de la DEPP — en deca, une
+# difference n'est pas interpretable — et les 10 points une convention qui
+# isole la queue extreme.
+#
+# POUR LE SCORE DE SIXIEME, la DEPP ne publie aucun seuil d'interpretabilite.
+# Reprendre 3 et 10 serait une faute : le score d'un college est la moyenne
+# d'une centaine d'eleves, donc bien plus bruite que l'IPS. Ces seuils
+# placaient 8,9 % des colleges hors de la bande centrale contre 4,8 % pour
+# l'IPS — ils faisaient paraitre l'etalon deux fois plus en desaccord avec la
+# carte reelle qu'il ne l'est.
+#
+#   8 points  = deux erreurs-types de la moyenne d'un college. C'est l'analogue
+#               exact de la regle des 3 points : l'ecart-type des eleves dans
+#               un college vaut 46 points en mediane, pour 113 eleves evalues,
+#               soit une erreur-type de 4,3 sur la moyenne des deux disciplines
+#               — elles correlent a +0,91, les moyenner ne reduit presque pas
+#               l'erreur. Deux erreurs-types donnent 8,6, arrondi a 8.
+#
+#  20 points  = meme RARETE que 10 points d'IPS. Aucune regle de mesure ne
+#               s'applique a cette borne : son role est d'isoler la queue, et
+#               le seul critere transposable est la part de colleges au-dela.
+#
+# Avec ce reglage les cinq plages retombent a un point de celles de l'IPS.
+SEUILS_PAR_ETALON = {"ips": (3.0, 10.0), "eval6": (8.0, 20.0)}
 
 # Largeur de classe de l'histogramme. L'IPS s'etale sur une centaine de
 # points, le score de sixieme sur plusieurs centaines : le pas suit l'echelle
@@ -65,13 +89,17 @@ ENCRE, GRILLE, MUET, ENCRE_2 = "#0b0b0b", "#e1e0d9", "#898781", "#52514e"
 VARIANTES = [("score_ecart", "type_ecart", "national"),
              ("score_ecart_academie", "type_ecart_academie", "académique")]
 
-# Libelle, couleur de l'en-tete. L'ordre suit l'axe des abscisses, de la
-# sur-inclusion la plus forte a l'oubli le plus fort.
-PLAGES = [("moins de −10", BLEU),
-          ("−10 à −3", BLEU_CLAIR),
-          ("−3 à +3", MUET),
-          ("+3 à +10", ORANGE_CLAIR),
-          ("plus de +10", ORANGE)]
+# Couleurs des cinq plages, de la sur-inclusion la plus forte a l'oubli le plus
+# fort. Les libelles sont construits a partir des seuils de l'etalon : les
+# ecrire en dur les aurait laisses sur "−10 à −3" pour le score de sixieme.
+COULEURS_PLAGES = [BLEU, BLEU_CLAIR, MUET, ORANGE_CLAIR, ORANGE]
+
+
+def libelles_plages(bas: float, haut: float) -> list[str]:
+    """Les cinq etiquettes du tableau, pour un couple de seuils."""
+    b, h = f"{bas:g}", f"{haut:g}"
+    return [f"moins de −{h}", f"−{h} à −{b}", f"−{b} à +{b}",
+            f"+{b} à +{h}", f"plus de +{h}"]
 
 
 def charger(cle: str) -> pd.DataFrame:
@@ -95,31 +123,32 @@ def signer(df: pd.DataFrame, col_score: str, col_type: str) -> np.ndarray:
         [df[col_score], -df[col_score]], default=0.0)
 
 
-def repartir(valeurs: np.ndarray) -> np.ndarray:
+def repartir(valeurs: np.ndarray, bas: float, haut: float) -> np.ndarray:
     """Part de colleges, en %, dans chacune des cinq plages d'ecart.
 
     Les conditions sont testees dans l'ordre et la plage centrale vient en
-    premier : elle est definie par |ecart| <= 3, ce qui la rend exactement
+    premier : elle est definie par |ecart| <= bas, ce qui la rend exactement
     symetrique. Les quatre autres s'en deduisent par le signe et par le
-    franchissement de 10. Aucune borne n'est ainsi attribuee deux fois, et le
-    decoupage ne peut pas fabriquer d'asymetrie.
+    franchissement de haut. Aucune borne n'est ainsi attribuee deux fois, et
+    le decoupage ne peut pas fabriquer d'asymetrie.
     """
     absolu = np.abs(valeurs)
     indices = np.select(
-        [absolu <= SEUIL_INTERPRETABLE,
-         (valeurs < 0) & (absolu > SEUIL_FORT),
+        [absolu <= bas,
+         (valeurs < 0) & (absolu > haut),
          valeurs < 0,
-         valeurs > SEUIL_FORT],
+         valeurs > haut],
         [2, 0, 1, 4],
         default=3)
-    effectifs = np.bincount(indices, minlength=len(PLAGES))
+    effectifs = np.bincount(indices, minlength=len(COULEURS_PLAGES))
     return 100 * effectifs / len(valeurs)
 
 
-def resumer(df: pd.DataFrame) -> None:
+def resumer(df: pd.DataFrame, etalon: dict, bas: float, haut: float) -> None:
     """Affiche la composition de la distribution, par variante."""
     print(f"\n{'=' * 84}")
-    print(f"DISTRIBUTION DE L'ECART D'IPS — {len(df)} colleges publics")
+    print(f"DISTRIBUTION DE L'ECART — {etalon['libelle_long'].upper()} — "
+          f"{len(df)} colleges publics")
     print("=" * 84)
 
     for col_score, _, libelle in VARIANTES:
@@ -135,14 +164,15 @@ def resumer(df: pd.DataFrame) -> None:
     print(f"\n{'-' * 84}")
     print("REPARTITION PAR PLAGE D'ECART, EN % DES COLLEGES")
     print("-" * 84)
-    entetes = [libelle.replace("−", "-") for libelle, _ in PLAGES]
+    entetes = [l.replace("−", "-") for l in libelles_plages(bas, haut)]
     print(f"{'seuil':14s}" + "".join(f"{e:>15s}" for e in entetes))
     for col_score, col_type, libelle in VARIANTES:
-        parts = repartir(signer(df, col_score, col_type))
+        parts = repartir(signer(df, col_score, col_type), bas, haut)
         print(f"{libelle:14s}" + "".join(f"{p:>14.1f}%" for p in parts))
 
 
-def tableau(fig, df: pd.DataFrame, position: list) -> None:
+def tableau(fig, df: pd.DataFrame, position: list, etalon: dict,
+            bas: float, haut: float) -> None:
     """Dessine sous le graphe la repartition en % par plage, pour les 2 seuils.
 
     Le tableau est trace a la main plutot qu'avec `ax.table` : on veut des
@@ -158,22 +188,23 @@ def tableau(fig, df: pd.DataFrame, position: list) -> None:
     # Colonne de libelles a gauche, puis cinq colonnes de valeurs reparties
     # sur l'espace restant.
     x_libelle = 0.0
-    x_colonnes = np.linspace(0.30, 0.96, len(PLAGES))
+    plages = list(zip(libelles_plages(bas, haut), COULEURS_PLAGES))
+    x_colonnes = np.linspace(0.30, 0.96, len(plages))
     y_entete, y_lignes = 0.82, [0.46, 0.14]
 
-    ax.text(x_libelle, y_entete, "Écart d'IPS", fontsize=8,
+    ax.text(x_libelle, y_entete, f"Écart {etalon['de_article']}", fontsize=8,
             fontweight="bold", color=ENCRE_2, va="center")
-    for x, (libelle, couleur) in zip(x_colonnes, PLAGES):
+    for x, (libelle, couleur) in zip(x_colonnes, plages):
         ax.text(x, y_entete, libelle, fontsize=8, fontweight="bold",
                 color=couleur, ha="center", va="center")
 
     ax.plot([0, 1], [0.66, 0.66], color=GRILLE, linewidth=1.2)
 
     for y, (col_score, col_type, libelle) in zip(y_lignes, VARIANTES):
-        parts = repartir(signer(df, col_score, col_type))
+        parts = repartir(signer(df, col_score, col_type), bas, haut)
         ax.text(x_libelle, y, f"Seuil {libelle}", fontsize=8.5,
                 color=ENCRE_2, va="center")
-        for x, part, (_, couleur) in zip(x_colonnes, parts, PLAGES):
+        for x, part, (_, couleur) in zip(x_colonnes, parts, plages):
             # La plage centrale concentre neuf colleges sur dix : elle est mise
             # en gras pour qu'on ne la confonde pas avec les quatre autres.
             centrale = couleur == MUET
@@ -189,6 +220,7 @@ def figure(df: pd.DataFrame, cle: str, etalon: dict) -> None:
     academique = signer(df, "score_ecart_academie", "type_ecart_academie")
 
     pas = PAS_PAR_ETALON[cle]
+    bas, haut = SEUILS_PAR_ETALON[cle]
     sujet = etalon["avec_article"][0].upper() + etalon["avec_article"][1:]
     seuil_txt = (f"{df['seuil'].iloc[0]:.{etalon['decimales']}f} points"
                  .replace(".", ","))
@@ -223,7 +255,7 @@ def figure(df: pd.DataFrame, cle: str, etalon: dict) -> None:
                 xy=(0, plafond), xytext=(6, -6), textcoords="offset points",
                 ha="left", va="top", fontsize=7.5, color=ENCRE_2)
 
-    for borne_seuil in (-SEUIL_INTERPRETABLE, SEUIL_INTERPRETABLE):
+    for borne_seuil in (-bas, bas):
         ax.axvline(borne_seuil, color=MUET, linewidth=0.9, linestyle="--")
 
     ax.set_xlabel(f"Écart {etalon['de_article']} au seuil budgétaire\n"
@@ -236,16 +268,19 @@ def figure(df: pd.DataFrame, cle: str, etalon: dict) -> None:
     for bord in ["top", "right"]:
         ax.spines[bord].set_visible(False)
 
-    tableau(fig, df, [0.085, 0.250, 0.89, 0.100])
+    tableau(fig, df, [0.085, 0.250, 0.89, 0.100], etalon, bas, haut)
 
     fig.suptitle(f"Distribution de l'écart {etalon['de_article']} au seuil "
                  f"budgétaire",
                  fontsize=13.5, fontweight="bold", x=0.02, ha="left", y=0.978)
+    part_nulle = 100 * (national == 0).mean()
     fig.text(0.02, 0.948,
-             "Neuf collèges sur dix sont conformes et valent exactement zéro : la "
-             "barre centrale est tronquée pour que le reste de la\n"
-             "distribution reste lisible, son effectif étant annoté. Les pointillés "
-             f"marquent ± {SEUIL_INTERPRETABLE:.0f} points. {justification}",
+             f"{part_nulle:.0f} % des collèges sont conformes et valent "
+             f"exactement zéro : la barre centrale est tronquée pour que le "
+             f"reste de la\n"
+             "distribution reste lisible, son effectif étant annoté. Les "
+             f"pointillés marquent ± {bas:g} points, les plages extrêmes du "
+             f"tableau ± {haut:g}.",
              fontsize=8.5, va="top", color=ENCRE_2)
 
     fig.text(0.02, 0.200,
@@ -253,6 +288,10 @@ def figure(df: pd.DataFrame, cle: str, etalon: dict) -> None:
              "entre les deux moitiés est une propriété des données,\n"
              "non du découpage. La plage centrale réunit les collèges conformes et "
              "ceux dont l'écart reste sous le seuil d'interprétabilité.\n"
+             # D'ou viennent les bornes : la question se pose differemment selon
+             # l'etalon, et la reponse ne tient pas sur une ligne.
+             + textwrap.fill(f"D'où viennent les bornes : {justification}",
+                             width=118) + "\n"
              f"Lecture : le seuil budgétaire est la valeur {etalon['de_article']} "
              f"du collège qui ferme l'enveloppe réellement allouée — "
              f"{seuil_txt} au niveau national.\n"
@@ -273,8 +312,9 @@ def figure(df: pd.DataFrame, cle: str, etalon: dict) -> None:
 
 def main() -> None:
     for cle, etalon in ETALONS.items():
+        bas, haut = SEUILS_PAR_ETALON[cle]
         df = charger(cle)
-        resumer(df)
+        resumer(df, etalon, bas, haut)
         figure(df, cle, etalon)
 
 
