@@ -428,13 +428,40 @@ départements.
 
 **Commentaire à ajouter moi meme**
 
-### Pourquoi pas de variante académique ici
+### Le ratio d'enveloppe, académie par académie
 
-Le reste du projet calcule tout deux fois, au seuil national et au seuil académique.
-Sur REP+ la seconde n'a pas de sens : **onze académies comptent moins de cinq REP+, et
-trois n'en comptent qu'un** — Dijon, Rennes, la Corse. Un seuil budgétaire calculé sur
-une seule place, et un ratio d'enveloppe qui en découlerait, ne mesureraient que le
-hasard du collège concerné.
+Ce ratio ne demande **aucun seuil académique** — c'est ce qui le rend calculable ici.
+Son dénominateur est le nombre de collèges de l'académie figurant parmi les 362
+collèges les plus bas **du pays**. Le ratio national vaut donc 1 par construction, et
+la carte se lit comme une redistribution à somme nulle.
+
+![Ratio d'enveloppe REP+ par académie, étalon IPS](outputs/figures/rep_plus_ratio_ips.png)
+
+**Commentaire à ajouter moi meme**
+
+![Ratio d'enveloppe REP+ par académie, étalon score de 6e](outputs/figures/rep_plus_ratio_eval6.png)
+
+**Commentaire à ajouter moi meme**
+
+**Ces deux cartes se lisent avec plus de prudence que leur équivalent de la première
+partie.** Sur l'éducation prioritaire entière, le dénominateur descendait à deux
+collèges ; sur REP+ il descend à **un** — Paris reçoit 4 places pour 1 collège dans
+l'ensemble optimal, Bordeaux 3 pour 1. Les deux effectifs sont donc inscrits sous
+chaque ratio : à cette échelle, « 4,00 » seul serait trompeur là où « 4/1 » est honnête.
+
+Cas limite avec le score de 6ᵉ : **la Corse ne compte aucun collège dans l'ensemble
+optimal**. Son ratio n'est pas infini, il n'existe pas — elle reste en gris.
+
+### Pourquoi pas de variante académique du score
+
+Le reste du projet calcule le score d'écart deux fois, au seuil national et au seuil
+académique. Sur REP+ la seconde n'a pas de sens : **onze académies comptent moins de
+cinq REP+, et trois n'en comptent qu'un** — Dijon, Rennes, la Corse. Un seuil
+budgétaire calculé sur une seule place ne mesurerait que le hasard du collège concerné.
+
+C'est une limite du *seuil*, pas du *ratio* : les deux quantités n'ont pas le même
+besoin. Le ratio ci-dessus reste calculable parce qu'il compare à un ensemble optimal
+national, sans jamais avoir à trancher à l'intérieur d'une académie.
 
 ## Limites
 

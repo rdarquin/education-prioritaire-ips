@@ -49,9 +49,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import matplotlib.patheffects as pe
 from matplotlib.colors import BoundaryNorm, ListedColormap
 
 from src.analyse import charger, restreindre_au_public
+from src.carte_enveloppe import (DIVERGENTE, DROM_ACADEMIES,
+                                 contours_academiques)
 from src.cartographie import annoter_drom, charger_contours
 from src.config import FIGURES, PROJECT_ROOT
 from src.etalons import ETALONS
@@ -68,6 +71,13 @@ GRIS_ABSENT = "#e3e3e3"
 # categories qui n'existent pas.
 BLEUS = ["#dce6f5", "#9ec4ee", "#5588cc", "#1f3b73", "#132548"]
 ORANGES = ["#fbe3d5", "#f2a888", "#eb6834", "#a8401a", "#6b280f"]
+
+# En dessous de ce nombre de colleges dans l'ensemble optimal, le ratio
+# d'enveloppe d'une academie repose sur trop peu d'observations pour etre lu
+# comme les autres. Le seuil est plus bas que celui de `carte_enveloppe` — cinq
+# contre dix — parce que l'enveloppe entiere est trois fois plus petite : le
+# retenir a dix marquerait presque toutes les academies et ne dirait plus rien.
+SEUIL_FRAGILE = 5
 
 # Largeur de classe de l'histogramme, par etalon : l'IPS s'etale sur une
 # centaine de points, le score de sixieme sur plusieurs centaines.
@@ -402,6 +412,174 @@ def figure_cartes(df: pd.DataFrame, info: dict, contours) -> None:
     print(f"[+] {chemin.name}")
 
 
+def ratios_academiques(df: pd.DataFrame, info: dict) -> pd.DataFrame:
+    """Places REP+ recues, rapportees aux colleges dans l'ensemble optimal.
+
+    CE QUE LE RATIO NE DEMANDE PAS
+
+    Il ne demande AUCUN seuil academique — c'est pourquoi il reste calculable
+    ici alors que la variante academique du score ne l'est pas. Le denominateur
+    est le nombre de colleges de l'academie figurant parmi les n colleges les
+    plus bas DU PAYS, n etant le nombre de places. Les deux totaux nationaux
+    sont le meme nombre, donc le ratio de la France vaut 1 par construction.
+
+    CE QU'IL DEMANDE EN REVANCHE
+
+    Un denominateur assez grand pour etre lu. Sur l'education prioritaire
+    entiere il descendait a deux colleges ; sur REP+ il descend a UN — Paris,
+    Bordeaux — et la Corse n'en compte AUCUN au score de sixieme, ce qui rend
+    son ratio indefini. La figure porte donc les deux effectifs sous chaque
+    ratio : a cette echelle, « 4,00 » seul serait trompeur la ou « 4/1 » est
+    honnete.
+    """
+    n = int(df["classe_ep"].sum())
+    colonne = info["etalon"]["colonne"]
+    optimal = set(df.nsmallest(n, colonne)["uai"])
+
+    aca = df.assign(dans_optimal=df["uai"].isin(optimal)).groupby(
+        ["code_academie", "academie"]).agg(
+        colleges=("uai", "size"),
+        places=("classe_ep", "sum"),
+        optimal=("dans_optimal", "sum"),
+    ).reset_index()
+
+    # Division par zero laissee a NaN plutot que comblee : une academie sans
+    # aucun college dans l'ensemble optimal n'a pas un ratio infini, elle n'en
+    # a pas. La carte la laisse en gris et la note la nomme.
+    aca["ratio"] = aca["places"] / aca["optimal"].replace(0, np.nan)
+    aca["fragile"] = aca["optimal"] < SEUIL_FRAGILE
+    return aca
+
+
+def classes_ratio_rep_plus(ratios: np.ndarray) -> np.ndarray:
+    """Bornes de classes sur le logarithme du ratio, bande centrale symetrique.
+
+    POURQUOI NE PAS REUTILISER CELLE DE `carte_enveloppe`
+
+    Elle prend ses bornes interieures sur les quantiles de |log2(ratio)|, TOUS
+    ecarts confondus. Sur REP+ cela echoue : douze academies sur trente ont un
+    ratio exactement egal a 1 — avec des effectifs aussi petits, places et
+    ensemble optimal coincident souvent — donc les quantiles a 35 % et 70 %
+    valent zero, les classes s'effondrent et la barre affiche « 1,00 » trois
+    fois de suite.
+
+    Ici les quantiles sont pris sur les seuls ecarts NON NULS, et zero n'est
+    pas une borne mais le milieu d'une bande centrale symetrique. Les academies
+    a ratio exactement 1 tombent donc dans la classe neutre, ce qui est leur
+    place.
+    """
+    ecarts = np.abs(np.log2(ratios))
+    non_nuls = ecarts[ecarts > 1e-9]
+    interieures = (np.unique(np.quantile(non_nuls, [0.45, 0.80]))
+                   if len(non_nuls) >= 2 else np.array([]))
+    extreme = ecarts.max()
+    bornes = np.concatenate([[-extreme], -interieures[::-1],
+                             interieures, [extreme]])
+    return np.unique(np.round(bornes, 4))
+
+
+def figure_ratio(df: pd.DataFrame, info: dict, aca: pd.DataFrame) -> None:
+    """Choroplethe academique du ratio d'enveloppe REP+."""
+    etalon = info["etalon"]
+    rattachement = (df.groupby("code_departement")["academie"]
+                    .first().rename("academie"))
+    gdf = contours_academiques(rattachement).join(
+        aca.set_index("academie")[["ratio", "places", "optimal", "fragile"]])
+    connus = gdf["ratio"].notna()
+
+    bornes = classes_ratio_rep_plus(gdf.loc[connus, "ratio"].to_numpy())
+    cmap = DIVERGENTE.resampled(len(bornes) - 1)
+    norme = BoundaryNorm(bornes, ncolors=len(bornes) - 1)
+
+    fig, ax = plt.subplots(figsize=(9.5, 11.4))
+    fig.subplots_adjust(left=0.02, right=0.98, top=0.876, bottom=0.215)
+
+    gdf.plot(ax=ax, color=GRIS_ABSENT, edgecolor="white", linewidth=0.5)
+    gdf[connus].assign(log=np.log2(gdf.loc[connus, "ratio"])).plot(
+        ax=ax, column="log", cmap=cmap, norm=norme, edgecolor="white",
+        linewidth=0.5)
+
+    contour = [pe.withStroke(linewidth=2.2, foreground="white")]
+    for nom, ligne in gdf.iterrows():
+        point = ligne["geometry"].representative_point()
+        if pd.isna(ligne["ratio"]):
+            texte = "—"
+        else:
+            texte = f"{ligne['ratio']:.2f}".replace(".", ",")
+        ax.annotate(texte, xy=(point.x, point.y), ha="center", va="bottom",
+                    fontsize=6.8, fontweight="bold", color=ENCRE,
+                    path_effects=contour)
+        # Les deux effectifs sous le ratio : a ces ordres de grandeur, le
+        # rapport seul ne dit pas s'il repose sur un college ou sur trente.
+        detail = f"{int(ligne['places'])}/{int(ligne['optimal'])}"
+        ax.annotate(detail, xy=(point.x, point.y), xytext=(0, -8),
+                    textcoords="offset points", ha="center", va="top",
+                    fontsize=5.6, color=ENCRE_2, path_effects=contour)
+
+    for code, etiquette in DROM_ACADEMIES.items():
+        if code in gdf.index:
+            forme = gdf.loc[code, "geometry"]
+            ax.annotate(etiquette, xy=(forme.centroid.x, forme.bounds[1] - 0.3),
+                        ha="center", va="top", fontsize=6.5, color=ENCRE_2)
+    ax.set_axis_off()
+
+    echelle = plt.cm.ScalarMappable(cmap=cmap, norm=norme)
+    cax = fig.add_axes([0.28, 0.178, 0.44, 0.013])
+    fig.colorbar(echelle, cax=cax, orientation="horizontal", ticks=bornes,
+                 spacing="uniform")
+    cax.set_xticklabels([f"{2 ** b:.2f}".replace(".", ",") for b in bornes],
+                        fontsize=6.5)
+    cax.set_xlabel("← reçoit moins que l'étalon        ratio = 1        "
+                   "reçoit plus →", fontsize=8, labelpad=4)
+
+    sans = sorted(a.title() for a in gdf.index[~connus])
+    fragiles = sorted(a.title() for a in gdf.index[gdf["fragile"].fillna(False)])
+
+    fig.suptitle(f"Chaque académie reçoit-elle autant de places REP+ qu'elle "
+                 f"compte\nde collèges parmi les plus bas de France ? — étalon "
+                 f"{etalon['libelle']}",
+                 fontsize=13, fontweight="bold", x=0.02, ha="left", y=0.975)
+    fig.text(0.02, 0.918,
+             f"Ratio entre les {info['n']} places REP+ reçues et le nombre de "
+             f"collèges de l'académie figurant parmi les {info['n']} collèges "
+             f"publics dont\n"
+             f"{etalon['avec_article']} est le plus bas du pays — soit exactement "
+             f"le nombre de places distribuées. Le ratio national vaut donc 1 "
+             f"par\nconstruction. Sous chaque ratio, les deux effectifs dont il "
+             f"est le rapport.",
+             fontsize=8.5, va="top", color=ENCRE_2)
+
+    avertissement = textwrap.fill(
+        f"LIRE AVEC PRUDENCE. Sur l'éducation prioritaire entière, ce ratio "
+        f"reposait sur des dénominateurs de deux collèges au minimum ; sur REP+ "
+        f"il descend à un. {len(fragiles)} académies en comptent moins de "
+        f"{SEUIL_FRAGILE} dans l'ensemble optimal : {', '.join(fragiles)}.", 150)
+    if sans:
+        avertissement += "\n" + textwrap.fill(
+            f"Sans aucun collège dans l'ensemble optimal, donc sans ratio défini "
+            f"et laissée en gris : {', '.join(sans)}.", 150)
+
+    fig.text(0.02, 0.148, avertissement + "\n"
+             "L'échelle suit le logarithme du ratio, celui-ci étant "
+             "multiplicatif : recevoir deux fois trop et deux fois trop peu sont "
+             "deux écarts de même ampleur.\n"
+             "Les classes sont des quantiles de la distribution observée, et la "
+             "barre reste graduée en ratios.\n"
+             "La répartition des réseaux entre académies est arrêtée au niveau "
+             "national sans clé de calcul publiée : ce ratio mesure une clé "
+             "implicite, il n'en reprend aucune.\n"
+             f"Champ : collèges publics, rentrée 2024-2025. Sources : "
+             f"{etalon['source']}, annuaire de l'éducation, contours "
+             "Insee/cartiflette. DROM rapprochés,\n"
+             "échelles et distances non respectées.",
+             fontsize=7.5, va="top", color=ENCRE_2)
+
+    chemin = FIGURES / f"rep_plus_ratio_{info['cle']}.png"
+    fig.savefig(chemin, dpi=200, facecolor="white")
+    plt.close(fig)
+    print(f"[+] {chemin.name}")
+
+
 def main() -> None:
     donnees = {}
     for cle in ETALONS:
@@ -416,6 +594,13 @@ def main() -> None:
     print(f"  {len(contours)} departements")
     for cle, (df, info) in donnees.items():
         figure_cartes(df, info, contours)
+
+    for cle, (df, info) in donnees.items():
+        aca = ratios_academiques(df, info)
+        figure_ratio(df, info, aca)
+        chemin = DOSSIER_TABLES / f"rep_plus_ratio_{cle}.csv"
+        aca.round(3).to_csv(chemin, index=False, encoding="utf-8")
+        print(f"[+] {chemin.name} ({len(aca)} academies)")
 
     DOSSIER_TABLES.mkdir(parents=True, exist_ok=True)
     for cle, (df, _) in donnees.items():
