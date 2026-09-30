@@ -142,7 +142,7 @@ une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le
 | `src/distribution_ecart.py` | distribution de l'écart au seuil et sa répartition par plage |
 | `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
 | `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus bas |
-| `src/ratios_enveloppe.py` | les ratios des deux étalons face à face, académie par académie |
+| `src/ratios_enveloppe.py` | les ratios des deux étalons face à face, académie par académie : haltères et nuage |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -344,6 +344,17 @@ deux ratios face à face, une ligne par académie, et c'est le **segment qui les
 qui porte l'information.
 
 ![Ratio d'enveloppe de chaque académie sous les deux étalons](outputs/figures/ratios_enveloppe_etalons.png)
+
+**Commentaire à ajouter moi meme**
+
+Le nuage qui suit porte les mêmes données autrement. Il ajoute deux choses que les
+haltères ne peuvent pas montrer : la **diagonale**, sur laquelle un point signifie que
+les deux étalons s'accordent exactement, et le **poids** de chaque académie — la surface
+du point est proportionnelle à son enveloppe. Un ratio de 0,75 sur 118 places (Lille)
+ne pèse pas comme un ratio de 1,40 sur 7 places (Limoges), ce que les haltères
+traitaient à égalité.
+
+![Nuage des deux ratios d'enveloppe par académie](outputs/figures/nuage_ratios_etalons.png)
 
 **Commentaire à ajouter moi meme**
 

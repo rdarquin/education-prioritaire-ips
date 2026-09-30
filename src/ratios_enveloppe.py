@@ -297,10 +297,240 @@ def figure(t: pd.DataFrame) -> None:
     print(f"\n[+] {chemin.name}")
 
 
+# Positions candidates d'une etiquette autour de son point, en points
+# typographiques, de la plus lisible a la moins. La premiere qui ne heurte rien
+# est retenue.
+CANDIDATS = [(12, 0), (-12, 0), (12, 13), (-12, 13), (12, -13), (-12, -13),
+             (0, 16), (0, -16), (26, 8), (-26, 8), (26, -8), (-26, -8),
+             # Portee longue, en dernier recours : la ligne de rappel s'allonge
+             # mais l'etiquette reste lisible, ce qui vaut mieux qu'un
+             # chevauchement.
+             (44, 0), (-44, 0), (44, 20), (-44, 20), (44, -20), (-44, -20),
+             (0, 30), (0, -30), (62, 10), (-62, 10)]
+
+
+def placer_etiquettes(fig, ax, annotations, priorite) -> int:
+    """Place chaque etiquette a la premiere position candidate libre.
+
+    POURQUOI PAS UN REPULSEUR ITERATIF
+
+    La premiere version deplacait les etiquettes en conflit par petits pas
+    jusqu'a resolution. Elle a diverge : dans un amas dense, les etiquettes se
+    repoussent en chaine et deux d'entre elles sont sorties du cadre, reliees a
+    leur point par une ligne de rappel traversant toute la figure. Un placement
+    par positions candidates est BORNE PAR CONSTRUCTION — une etiquette ne
+    s'eloigne jamais de plus de 26 points de son point — et deterministe.
+
+    Les etiquettes sont posees par ordre de PRIORITE decroissante : les grosses
+    academies, celles qui pesent dans la redistribution, obtiennent la meilleure
+    place, et les petites se contentent de ce qui reste.
+
+    Returns:
+        Le nombre d'etiquettes pour lesquelles aucune position n'etait libre.
+        Elles restent a droite de leur point et peuvent se chevaucher : mieux
+        vaut le savoir que de le decouvrir sur la figure.
+    """
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    cadre = ax.get_window_extent(renderer=renderer)
+
+    posees, irreductibles = [], 0
+    for indice in np.argsort(priorite)[::-1]:
+        annotation = annotations[indice]
+        for candidat in CANDIDATS:
+            annotation.set_position(candidat)
+            fig.canvas.draw()
+            boite = annotation.get_window_extent(renderer=renderer)
+            # `contains` sur un Bbox teste un point : on verifie les deux coins.
+            dedans = (cadre.x0 <= boite.x0 and boite.x1 <= cadre.x1
+                      and cadre.y0 <= boite.y0 and boite.y1 <= cadre.y1)
+            if dedans and not any(boite.overlaps(b) for b in posees):
+                posees.append(boite)
+                break
+        else:
+            annotation.set_position(CANDIDATS[0])
+            fig.canvas.draw()
+            posees.append(annotation.get_window_extent(renderer=renderer))
+            irreductibles += 1
+    return irreductibles
+
+
+def figure_nuage(t: pd.DataFrame) -> None:
+    """Nuage des deux ratios : un point par academie, taille = enveloppe.
+
+    CE QUE LE NUAGE AJOUTE AUX HALTERES
+
+    Deux choses que l'autre figure ne peut pas montrer.
+
+    La DIAGONALE d'abord : un point dessus signifie que les deux etalons
+    s'accordent exactement, et la distance a la diagonale mesure le desaccord.
+    Les halteres donnaient cette distance mais pas le niveau commun.
+
+    Le POIDS ensuite. Les halteres traitent les trente academies a egalite,
+    alors qu'un ratio de 0,75 sur 118 places — Lille — ne pese pas comme un
+    ratio de 1,40 sur 7 places — Limoges. La surface du point est donc
+    proportionnelle au nombre de places, ce qui remet les petites academies a
+    leur place reelle dans la redistribution.
+
+    LES QUATRE QUADRANTS
+
+    Les deux droites a 1 decoupent le plan en quatre. En bas a gauche et en
+    haut a droite, les deux etalons s'accordent sur le SENS. Dans les deux
+    autres quadrants ils se contredisent, et ce sont les quinze academies
+    surlignees de la figure precedente.
+    """
+    a, b = list(ETALONS)
+    ra, rb = f"ratio_enveloppe_{a}", f"ratio_enveloppe_{b}"
+
+    x, y = np.log2(t[ra].to_numpy()), np.log2(t[rb].to_numpy())
+    places = t[f"classes_{a}"].to_numpy()
+
+    # La SURFACE du point porte l'enveloppe : c'est l'aire que l'oeil compare,
+    # pas le rayon. D'ou la racine carree.
+    tailles = 22 + 700 * np.sqrt(places / places.max())
+
+    # Un point est colore quand les deux etalons se contredisent sur le sens,
+    # gris quand ils s'accordent. Le gris n'est pas un defaut de la palette :
+    # c'est le cas sans information.
+    couleurs = np.where(
+        ~t["change_de_cote"], MUET,
+        np.where(t[ra] > 1, BLEU, ORANGE))
+
+    fig, ax = plt.subplots(figsize=(12.8, 13.2))
+    fig.subplots_adjust(left=0.075, right=0.978, top=0.878, bottom=0.188)
+
+    borne = (np.log2(0.38), np.log2(6.4))
+    ax.plot(borne, borne, color=ENCRE_2, linewidth=1.0, linestyle="--",
+            zorder=1)
+    ax.annotate("les deux étalons s'accordent", xy=(np.log2(3.1), np.log2(3.1)),
+                xytext=(6, -14), textcoords="offset points", fontsize=8,
+                color=ENCRE_2, rotation=45, rotation_mode="anchor",
+                ha="left", va="center")
+
+    ax.axvline(0.0, color=ENCRE, linewidth=1.1, zorder=2)
+    ax.axhline(0.0, color=ENCRE, linewidth=1.1, zorder=2)
+
+    ax.scatter(x, y, s=tailles, c=couleurs, alpha=0.72, linewidths=0.6,
+               edgecolors="white", zorder=3)
+
+    annotations = []
+    for xi, yi, nom, frag in zip(x, y, t["academie"], t["fragile"]):
+        annotations.append(ax.annotate(
+            f"{nom.title()}{' *' if frag else ''}", xy=(xi, yi),
+            xytext=(11, 0), textcoords="offset points", fontsize=7.5,
+            color=ENCRE, va="center", ha="left",
+            arrowprops=dict(arrowstyle="-", color=MUET, linewidth=0.5,
+                            shrinkA=0, shrinkB=2)))
+    restantes = placer_etiquettes(fig, ax, annotations, places)
+    if restantes:
+        print(f"  {restantes} etiquettes sans position libre : elles se "
+              f"chevauchent peut-etre")
+
+    for graduation in (ax.set_xticks, ax.set_yticks):
+        graduation([np.log2(g) for g in GRADUATIONS])
+    etiquettes = [f"{g:g}".replace(".", ",") for g in GRADUATIONS]
+    ax.set_xticklabels(etiquettes, fontsize=8.5)
+    ax.set_yticklabels(etiquettes, fontsize=8.5)
+    ax.set_xlim(*borne)
+    ax.set_ylim(*borne)
+    ax.set_aspect("equal")  # sans quoi la diagonale ne serait plus a 45°
+
+    ax.set_xlabel(f"Ratio d'enveloppe selon l'{ETALONS[a]['libelle']}",
+                  fontsize=10, labelpad=6)
+    ax.set_ylabel(f"Ratio d'enveloppe selon le {ETALONS[b]['libelle']}",
+                  fontsize=10, labelpad=6)
+    ax.grid(True, linewidth=0.5, color=GRILLE)
+    ax.set_axisbelow(True)
+    for bord in ["top", "right"]:
+        ax.spines[bord].set_visible(False)
+
+    # Legende des couleurs, et legende des tailles : deux encodages, deux
+    # legendes, sans quoi la surface des points resterait indechiffrable.
+    poignees_couleur = [
+        plt.Line2D([], [], marker="o", linestyle="", markersize=8,
+                   markerfacecolor=MUET, markeredgecolor="white",
+                   label="les deux étalons s'accordent sur le sens"),
+        plt.Line2D([], [], marker="o", linestyle="", markersize=8,
+                   markerfacecolor=BLEU, markeredgecolor="white",
+                   label="sur-dotée selon l'IPS, sous-dotée selon le score"),
+        plt.Line2D([], [], marker="o", linestyle="", markersize=8,
+                   markerfacecolor=ORANGE, markeredgecolor="white",
+                   label="sous-dotée selon l'IPS, sur-dotée selon le score"),
+    ]
+    premiere = ax.legend(handles=poignees_couleur, loc="upper left",
+                         fontsize=8.5, frameon=True, framealpha=0.96,
+                         edgecolor=GRILLE)
+    premiere.get_frame().set_linewidth(0.6)
+    ax.add_artist(premiere)
+
+    reperes = [10, 50, 130]
+    poignees_taille = [
+        plt.Line2D([], [], marker="o", linestyle="", markeredgecolor=MUET,
+                   markerfacecolor="white",
+                   markersize=np.sqrt(22 + 700 * np.sqrt(n / places.max())) / 2,
+                   label=f"{n} places")
+        for n in reperes]
+    seconde = ax.legend(handles=poignees_taille, loc="lower right",
+                        fontsize=8.5, frameon=True, framealpha=0.96,
+                        edgecolor=GRILLE, labelspacing=1.5,
+                        title="Enveloppe de l'académie", title_fontsize=8.5,
+                        borderpad=1.0)
+    seconde.get_frame().set_linewidth(0.6)
+
+    n_change = int(t["change_de_cote"].sum())
+    sans = t[t[ra] < 3]
+    corr = f"{sans[ra].corr(sans[rb]):+.2f}".replace(".", ",")
+
+    fig.suptitle("Les deux étalons placent-ils les académies au même endroit ?",
+                 fontsize=14, fontweight="bold", x=0.02, ha="left", y=0.978)
+    fig.text(0.02, 0.938,
+             "Chaque académie est un point : son ratio d'enveloppe selon l'IPS "
+             "en abscisse, selon le score de 6ᵉ en ordonnée. Un point sur la "
+             "diagonale signifie\n"
+             "que les deux étalons s'accordent exactement ; la distance à la "
+             "diagonale mesure leur désaccord. La surface du point est "
+             "proportionnelle au nombre\n"
+             "de places de l'académie — un ratio de 0,75 sur 118 places ne pèse "
+             "pas comme un ratio de 1,40 sur 7 places.",
+             fontsize=9, va="top", color=ENCRE_2)
+
+    fig.text(0.02, 0.140,
+             f"Les deux droites à 1 découpent le plan en quatre. En bas à gauche "
+             f"et en haut à droite, les deux étalons s'accordent sur le sens. "
+             f"Dans les deux autres quadrants\n"
+             f"ils se contredisent : ce sont les {n_change} académies sur "
+             f"{len(t)} qui changent de côté. Hors les deux académies au-delà de "
+             f"3 — Corse et Paris, dont le ratio est\n"
+             f"identique dans les deux étalons et vaut cinq fois la moyenne — les "
+             f"deux ratios corrèlent à {corr} seulement.\n"
+             "Les deux échelles sont logarithmiques, le ratio étant "
+             "multiplicatif : recevoir deux fois trop et deux fois trop peu sont "
+             "deux écarts de même ampleur. Les\n"
+             "graduations restent des ratios, et le repère est orthonormé pour que "
+             "la diagonale soit bien à 45°.\n"
+             f"(*) ratio assis sur moins de {SEUIL_FRAGILE} collèges dans "
+             "l'ensemble optimal, pour au moins un des deux étalons : un collège "
+             "de plus ou de moins le déplacerait fortement.\n"
+             "Aucun des deux étalons n'est le critère officiel de classement : un "
+             "écart à 1 mesure un désaccord entre deux instruments, pas une erreur "
+             "de répartition — et\n"
+             "le désaccord entre les deux étalons ne dit pas lequel a raison.\n"
+             "Champ : collèges publics, rentrée 2024-2025 / évaluations de "
+             "septembre 2024. Sources : DEPP (IPS, évaluations nationales de "
+             "sixième), annuaire de l'éducation.",
+             fontsize=7.5, va="top", color=ENCRE_2)
+
+    chemin = FIGURES / "nuage_ratios_etalons.png"
+    fig.savefig(chemin, dpi=200, facecolor="white")
+    plt.close(fig)
+    print(f"[+] {chemin.name}")
+
+
 def main() -> None:
     t = charger()
     resumer(t)
     figure(t)
+    figure_nuage(t)
 
     DOSSIER_TABLES.mkdir(parents=True, exist_ok=True)
     chemin = DOSSIER_TABLES / "ratios_enveloppe_etalons.csv"
