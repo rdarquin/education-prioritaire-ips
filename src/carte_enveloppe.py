@@ -82,7 +82,56 @@ DIVERGENTE = LinearSegmentedColormap.from_list(
 # academie repose sur trop peu d'observations pour etre lu comme les autres.
 # Ces academies sont nommees dans la note, sans etre retirees de la carte :
 # les masquer donnerait a croire qu'on n'a pas la donnee.
-SEUIL_FRAGILE = 10
+# A partir de combien d'etablissements un ratio est-il lisible ? La question
+# vaut pour les DEUX termes, qui ne posent pas le meme probleme.
+#
+# LE DENOMINATEUR porte l'incertitude. C'est un comptage — combien de colleges
+# de l'academie tombent parmi les n plus bas du pays — et un college proche du
+# seuil peut basculer selon l'erreur de mesure de l'etalon. En posant
+# Var(d) = phi * d, l'erreur-type de log2(ratio) vaut racine(phi) / (racine(d)
+# * ln 2), et l'intervalle a 95 % exclut 1 des que
+#
+#     |log2(ratio)| > 2 * racine(phi) / (racine(d) * ln 2)
+#
+# phi a ete MESURE plutot que suppose : en recalculant le denominateur sur les
+# trois rentrees d'IPS disponibles, la carte d'education prioritaire n'ayant
+# pas bouge, le rapport variance/moyenne vaut 0,16 — et non 1 comme le
+# supposerait un modele de Poisson. La plupart des colleges sont loin du seuil
+# et ne basculent jamais ; l'ecart median d'une rentree a l'autre est d'UN
+# college. Cette mesure melange variation reelle et erreur de mesure, c'est
+# donc une borne haute sur le bruit.
+#
+# Avec phi = 0,16, le denominateur minimal vaut 2 pour distinguer un ecart de
+# x2, 4 pour x1,5, 8 pour x1,33. On retient QUATRE, soit un ecart de 50 %.
+#
+# LE NUMERATEUR, lui, n'est pas une variable aleatoire : le nombre de places
+# d'une academie est une decision administrative, connue exactement. Il
+# n'apporte aucune erreur d'echantillonnage — mais il QUANTIFIE le ratio, qui
+# ne peut valoir que k/d. Avec une seule place, les seules valeurs entre 0,5
+# et 2 sont 0,50 et 1,00 : il n'existe rien entre les deux. Avec quatre, on
+# obtient 0,50, 0,57, 0,67, 0,80, 1,00, 1,33 et 2,00. On retient donc QUATRE
+# la aussi.
+#
+# Les deux conditions sont necessaires, et c'est la seconde qui disqualifie
+# les cas que le seul test statistique laisse passer : Dijon et Rennes
+# affichent 0,50 sur REP+, ce qui "detecte" un ecart de x2 — mais avec une
+# place le ratio ne pouvait valoir que 0,50 ou 1,00. Ce n'est pas une mesure,
+# c'est un comptage de deux colleges.
+SEUIL_PLACES = 4
+SEUIL_OPTIMAL = 4
+
+
+def ratio_lisible(places, optimal):
+    """Le ratio satisfait-il les deux conditions ? Voir le commentaire ci-dessus.
+
+    Args:
+        places: numerateur — places recues, exactement connu.
+        optimal: denominateur — colleges dans l'ensemble optimal national.
+
+    Returns:
+        Un booleen par academie, vrai quand le ratio peut etre lu.
+    """
+    return (places >= SEUIL_PLACES) & (optimal >= SEUIL_OPTIMAL)
 
 # `cartographie.annoter_drom` attend un fond indexe par code departement ; ici
 # l'index est l'academie. Les cinq academies ultramarines portant le nom de
@@ -203,20 +252,24 @@ def figure(academies: pd.DataFrame, gdf, cle: str, etalon: dict) -> None:
     places = f"{int(academies['classes'].sum()):,}".replace(",", " ")
     sujet = etalon["avec_article"][0].upper() + etalon["avec_article"][1:]
 
-    # Les academies fragiles sont CALCULEES et non ecrites en dur : elles
-    # changent d'un etalon a l'autre. Un ratio assis sur une poignee de
-    # colleges n'a pas la meme portee qu'un ratio assis sur cent cinquante.
-    petites = academies[academies["defavorises_national"] < SEUIL_FRAGILE]
+    # Les academies illisibles sont CALCULEES et non ecrites en dur : elles
+    # changent d'un etalon a l'autre.
+    lisible = ratio_lisible(academies["classes"],
+                            academies["defavorises_national"])
+    petites = academies[~lisible]
     if petites.empty:
         fragiles = ""
     else:
-        noms = ", ".join(f"{a.title()} ({int(n)})" for a, n in
-                         zip(petites["academie"], petites["defavorises_national"]))
-        # La liste s'allonge avec le nombre d'academies fragiles : sans repli,
-        # elle deborderait du cadre pour l'un des deux etalons.
+        noms = ", ".join(
+            f"{a.title()} ({int(k)}/{int(d)})" for a, k, d in
+            zip(petites["academie"], petites["classes"],
+                petites["defavorises_national"]))
+        # La liste s'allonge avec le nombre d'academies concernees : sans
+        # repli, elle deborderait du cadre pour l'un des deux etalons.
         fragiles = textwrap.fill(
-            f"Académies au dénominateur minuscule — {noms} collèges dans "
-            f"l'ensemble optimal.", width=118)
+            f"Ratio non lisible — moins de {SEUIL_PLACES} places ou moins de "
+            f"{SEUIL_OPTIMAL} collèges dans l'ensemble optimal, "
+            f"places/collèges entre parenthèses : {noms}.", width=118)
     fig.suptitle(f"Chaque académie reçoit-elle autant de places qu'elle compte\n"
                  f"de collèges parmi les plus bas de France ? "
                  f"— étalon : {etalon['libelle']}",
@@ -242,8 +295,14 @@ def figure(academies: pd.DataFrame, gdf, cle: str, etalon: dict) -> None:
              f"{sujet} n'est pas le critère officiel de classement — un écart à 1 "
              "signale un désaccord entre deux instruments, pas une erreur de "
              "répartition.\n"
-             f"{fragiles} Un dénominateur aussi petit rend le ratio instable : un "
-             "collège de plus ou de moins le déplacerait fortement.\n"
+             f"{fragiles}\n"
+             f"Ce double seuil n'est pas une convention : la variance du "
+             f"dénominateur, mesurée sur trois rentrées, vaut 0,16 fois sa "
+             f"moyenne, d'où {SEUIL_OPTIMAL} collèges pour distinguer un écart "
+             f"de 50 %.\n"
+             f"Et avec moins de {SEUIL_PLACES} places le ratio ne peut prendre "
+             f"que des valeurs très espacées — avec une seule, rien n'existe "
+             f"entre 0,50 et 1,00.\n"
              f"Champ : collèges publics, rentrée 2024-2025. Sources : "
              f"{etalon['source']}, annuaire de l'éducation, contours "
              "Insee/cartiflette.\n"

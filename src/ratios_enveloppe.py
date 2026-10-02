@@ -55,6 +55,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import FIGURES, PROJECT_ROOT
+from src.carte_enveloppe import SEUIL_OPTIMAL, SEUIL_PLACES, ratio_lisible
 from src.etalons import ETALONS, fichier_academies
 from src.etiquettes import placer_etiquettes
 
@@ -67,9 +68,9 @@ ENCRE, ENCRE_2, MUET, GRILLE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9"
 # (0,44 a 5,50) en restant des valeurs qu'un lecteur interprete sans effort.
 GRADUATIONS = [0.5, 0.67, 0.8, 1.0, 1.25, 1.5, 2.0, 3.0, 5.0]
 
-# En dessous de ce nombre de colleges dans l'ensemble optimal, le ratio repose
-# sur trop peu d'observations : l'academie est signalee d'un asterisque.
-SEUIL_FRAGILE = 10
+# Le critere de lisibilite d'un ratio — une double condition portant sur le
+# numerateur ET le denominateur — vient de `carte_enveloppe`, ou il est etabli
+# et justifie. Les academies qui n'y satisfont pas portent un asterisque.
 
 # Au-dela de ce ratio, une academie sort du cadre du NUAGE. Elle y etirerait
 # l'echelle jusqu'a six et tasserait les vingt-huit autres dans un coin. Deux
@@ -122,8 +123,12 @@ def charger() -> pd.DataFrame:
 
     t["change_de_cote"] = ((t[f"ratio_enveloppe_{cles[0]}"] > 1)
                            != (t[f"ratio_enveloppe_{cles[1]}"] > 1))
-    t["fragile"] = ((t[f"defavorises_national_{cles[0]}"] < SEUIL_FRAGILE)
-                    | (t[f"defavorises_national_{cles[1]}"] < SEUIL_FRAGILE))
+    # Un point est marque des que le ratio est illisible pour L'UN des deux
+    # etalons : il ne se compare pas a l'autre si l'un des deux est du bruit.
+    t["fragile"] = ~(ratio_lisible(t[f"classes_{cles[0]}"],
+                                   t[f"defavorises_national_{cles[0]}"])
+                     & ratio_lisible(t[f"classes_{cles[1]}"],
+                                     t[f"defavorises_national_{cles[1]}"]))
     return t.sort_values(f"ratio_enveloppe_{cles[0]}", ascending=False)
 
 
@@ -376,9 +381,12 @@ def figure_nuage(t: pd.DataFrame) -> None:
              "deux écarts de même ampleur. Les\n"
              "graduations restent des ratios, et le repère est orthonormé pour que "
              "la diagonale soit bien à 45°.\n"
-             f"(*) ratio assis sur moins de {SEUIL_FRAGILE} collèges dans "
-             "l'ensemble optimal, pour au moins un des deux étalons : un collège "
-             "de plus ou de moins le déplacerait fortement.\n"
+             f"(*) ratio non lisible pour au moins un des deux étalons — moins "
+             f"de {SEUIL_PLACES} places, ou moins de {SEUIL_OPTIMAL} collèges "
+             f"dans l'ensemble optimal. Le second seuil vient de la variance\n"
+             f"du dénominateur, mesurée à 0,16 fois sa moyenne sur trois "
+             f"rentrées ; le premier de la granularité, le ratio ne pouvant "
+             f"valoir que places divisées par collèges.\n"
              "Aucun des deux étalons n'est le critère officiel de classement : un "
              "écart à 1 mesure un désaccord entre deux instruments, pas une erreur "
              "de répartition — et\n"

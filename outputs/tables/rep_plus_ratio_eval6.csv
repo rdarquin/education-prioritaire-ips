@@ -15,7 +15,7 @@ code_academie,academie,colleges,places,optimal,ratio,fragile
 15,STRASBOURG,146,12,9,1.333,False
 16,TOULOUSE,247,3,4,0.75,True
 17,NANTES,248,10,11,0.909,False
-18,ORLEANS-TOURS,230,10,4,2.5,True
+18,ORLEANS-TOURS,230,10,4,2.5,False
 19,REIMS,129,10,5,2.0,False
 20,AMIENS,173,13,15,0.867,False
 22,LIMOGES,77,2,3,0.667,True
@@ -25,7 +25,7 @@ code_academie,academie,colleges,places,optimal,ratio,fragile
 27,CORSE,29,1,0,,True
 28,LA REUNION,78,21,19,1.105,False
 31,MARTINIQUE,43,9,15,0.6,False
-32,GUADELOUPE,45,3,22,0.136,False
+32,GUADELOUPE,45,3,22,0.136,True
 33,GUYANE,31,30,29,1.034,False
 43,MAYOTTE,22,9,22,0.409,False
 70,NORMANDIE,303,15,26,0.577,False

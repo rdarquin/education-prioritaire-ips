@@ -53,8 +53,9 @@ import matplotlib.patheffects as pe
 from matplotlib.colors import BoundaryNorm, ListedColormap
 
 from src.analyse import charger, restreindre_au_public
-from src.carte_enveloppe import (DIVERGENTE, DROM_ACADEMIES,
-                                 contours_academiques)
+from src.carte_enveloppe import (DIVERGENTE, DROM_ACADEMIES, SEUIL_OPTIMAL,
+                                 SEUIL_PLACES, contours_academiques,
+                                 ratio_lisible)
 from src.cartographie import annoter_drom, charger_contours
 from src.etiquettes import placer_etiquettes
 from src.config import FIGURES, PROJECT_ROOT
@@ -73,12 +74,10 @@ GRIS_ABSENT = "#e3e3e3"
 BLEUS = ["#dce6f5", "#9ec4ee", "#5588cc", "#1f3b73", "#132548"]
 ORANGES = ["#fbe3d5", "#f2a888", "#eb6834", "#a8401a", "#6b280f"]
 
-# En dessous de ce nombre de colleges dans l'ensemble optimal, le ratio
-# d'enveloppe d'une academie repose sur trop peu d'observations pour etre lu
-# comme les autres. Le seuil est plus bas que celui de `carte_enveloppe` — cinq
-# contre dix — parce que l'enveloppe entiere est trois fois plus petite : le
-# retenir a dix marquerait presque toutes les academies et ne dirait plus rien.
-SEUIL_FRAGILE = 5
+# Le critere de lisibilite d'un ratio — double condition sur le numerateur ET
+# le denominateur — vient de `carte_enveloppe`, ou il est etabli et justifie.
+# Il vaut a l'identique pour les deux perimetres : c'est une propriete de
+# l'estimateur, pas du champ.
 
 # Largeur de classe de l'histogramme, par etalon : l'IPS s'etale sur une
 # centaine de points, le score de sixieme sur plusieurs centaines.
@@ -448,7 +447,7 @@ def ratios_academiques(df: pd.DataFrame, info: dict) -> pd.DataFrame:
     # aucun college dans l'ensemble optimal n'a pas un ratio infini, elle n'en
     # a pas. La carte la laisse en gris et la note la nomme.
     aca["ratio"] = aca["places"] / aca["optimal"].replace(0, np.nan)
-    aca["fragile"] = aca["optimal"] < SEUIL_FRAGILE
+    aca["fragile"] = ~ratio_lisible(aca["places"], aca["optimal"])
     return aca
 
 
@@ -551,10 +550,13 @@ def figure_ratio(df: pd.DataFrame, info: dict, aca: pd.DataFrame) -> None:
              fontsize=8.5, va="top", color=ENCRE_2)
 
     avertissement = textwrap.fill(
-        f"LIRE AVEC PRUDENCE. Sur l'éducation prioritaire entière, ce ratio "
-        f"reposait sur des dénominateurs de deux collèges au minimum ; sur REP+ "
-        f"il descend à un. {len(fragiles)} académies en comptent moins de "
-        f"{SEUIL_FRAGILE} dans l'ensemble optimal : {', '.join(fragiles)}.", 150)
+        f"LIRE AVEC PRUDENCE. Un ratio n'est lisible qu'à partir de "
+        f"{SEUIL_PLACES} places ET {SEUIL_OPTIMAL} collèges dans l'ensemble "
+        f"optimal. Le second seuil vient de la variance du dénominateur, "
+        f"mesurée à 0,16 fois sa moyenne sur trois rentrées ; le premier de la "
+        f"granularité — avec une seule place, le ratio ne peut valoir que 0,50 "
+        f"ou 1,00, rien entre les deux. {len(fragiles)} académies sur 30 n'y "
+        f"satisfont pas : {', '.join(fragiles)}.", 150)
     if sans:
         avertissement += "\n" + textwrap.fill(
             f"Sans aucun collège dans l'ensemble optimal, donc sans ratio défini "
@@ -606,8 +608,10 @@ def figure_nuage_ratios(ratios: dict) -> None:
     t = t.dropna(subset=[ra, rb]).copy()
 
     t["change_de_cote"] = (t[ra] > 1) != (t[rb] > 1)
-    t["fragile"] = t[f"optimal_{a}"].lt(SEUIL_FRAGILE) | t[f"optimal_{b}"].lt(
-        SEUIL_FRAGILE)
+    # Marque des que le ratio est illisible pour L'UN des deux etalons : il ne
+    # se compare pas a l'autre si l'un des deux est du bruit.
+    t["fragile"] = ~(ratio_lisible(t[f"places_{a}"], t[f"optimal_{a}"])
+                     & ratio_lisible(t[f"places_{b}"], t[f"optimal_{b}"]))
 
     x, y = np.log2(t[ra].to_numpy()), np.log2(t[rb].to_numpy())
     places = t[f"places_{a}"].to_numpy()
@@ -726,11 +730,14 @@ def figure_nuage_ratios(ratios: dict) -> None:
             152)
 
     fig.text(0.02, 0.168, note + "\n"
-             f"(*) ratio reposant sur moins de {SEUIL_FRAGILE} collèges dans "
-             f"l'ensemble optimal, pour au moins un des deux étalons. Sur REP+ "
-             f"ce dénominateur descend à un : Paris reçoit\n"
-             f"4 places pour 1 collège, Bordeaux 3 pour 1. La position de ces "
-             f"points tient à une poignée d'établissements.\n"
+             f"(*) ratio non lisible pour au moins un des deux étalons : moins "
+             f"de {SEUIL_PLACES} places, ou moins de {SEUIL_OPTIMAL} collèges "
+             f"dans l'ensemble optimal. Le second seuil vient de la variance du\n"
+             f"dénominateur, mesurée à 0,16 fois sa moyenne sur trois rentrées ; "
+             f"le premier de la granularité. Sur REP+ le dénominateur descend à "
+             f"un — Paris reçoit 4 places pour 1 collège,\n"
+             f"Bordeaux 3 pour 1 — et le ratio ne peut alors valoir que 0,50 ou "
+             f"1,00 : ce n'est pas une mesure, c'est un comptage.\n"
              "Les deux échelles sont logarithmiques, le ratio étant "
              "multiplicatif : recevoir deux fois trop et deux fois trop peu sont "
              "deux écarts de même ampleur. Les graduations\n"

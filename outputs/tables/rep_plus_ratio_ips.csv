@@ -1,7 +1,7 @@
 code_academie,academie,colleges,places,optimal,ratio,fragile
 1,PARIS,114,4,1,4.0,True
 2,AIX-MARSEILLE,212,33,34,0.971,False
-3,BESANCON,107,4,4,1.0,True
+3,BESANCON,107,4,4,1.0,False
 4,BORDEAUX,266,3,1,3.0,True
 6,CLERMONT-FERRAND,137,5,5,1.0,False
 7,DIJON,158,1,2,0.5,True
