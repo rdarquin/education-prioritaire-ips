@@ -58,6 +58,7 @@ from src.carte_enveloppe import (DIVERGENTE, DROM_ACADEMIES, SEUIL_OPTIMAL,
                                  ratio_lisible)
 from src.cartographie import annoter_drom, charger_contours
 from src.etiquettes import placer_etiquettes
+from src.noms import academie, academies, departements
 from src.config import FIGURES, PROJECT_ROOT
 from src.etalons import ETALONS
 from src.score_ecart import ajouter_score, controler_identite
@@ -349,6 +350,7 @@ def carte(ax, sous: pd.DataFrame, contours, teintes: list[str], titre: str,
 def figure_cartes(df: pd.DataFrame, info: dict, contours) -> None:
     """Ou se trouvent les ecarts a l'enveloppe REP+ ?"""
     etalon = info["etalon"]
+    libelles = departements(contours)
     sur = df[df["categorie"] == "sur-inclus"]
     oublis = df[df["type_ecart"] == "oublie"]
     hors_ep = oublis[oublis["ep"] == "hors EP"]
@@ -370,9 +372,10 @@ def figure_cartes(df: pd.DataFrame, info: dict, contours) -> None:
     avec = etalon["avec_article"]
     sujet = avec[0].upper() + avec[1:]
 
-    departements = textwrap.fill(
+    liste_departements = textwrap.fill(
         "Départements concernés : "
-        + ", ".join(sorted(hors_ep["departement"].str.title().unique())) + ".",
+        + ", ".join(sorted(set(hors_ep["code_departement"].map(libelles))))
+        + ".",
         width=150)
 
     fig.suptitle(f"Où se trouvent les écarts à l'enveloppe REP+ ?\n"
@@ -391,7 +394,7 @@ def figure_cartes(df: pd.DataFrame, info: dict, contours) -> None:
              f"Partout ailleurs,\n"
              f"les oublis sont des collèges DÉJÀ classés REP : l'écart porte sur "
              f"le niveau d'aide, pas sur son existence.\n"
-             + departements + "\n"
+             + liste_departements + "\n"
              "Les classes sont des effectifs entiers et non une rampe continue : "
              "un département compte deux collèges ou trois, jamais deux et demi. "
              "En gris, les départements sans aucun cas.\n"
@@ -532,8 +535,8 @@ def figure_ratio(df: pd.DataFrame, info: dict, aca: pd.DataFrame) -> None:
     cax.set_xlabel("← reçoit moins que l'étalon        ratio = 1        "
                    "reçoit plus →", fontsize=8, labelpad=4)
 
-    sans = sorted(a.title() for a in gdf.index[~connus])
-    fragiles = sorted(a.title() for a in gdf.index[gdf["fragile"].fillna(False)])
+    sans = sorted(academies(gdf.index[~connus]))
+    fragiles = sorted(academies(gdf.index[gdf["fragile"].fillna(False)]))
 
     fig.suptitle(f"Chaque académie reçoit-elle autant de places REP+ qu'elle "
                  f"compte\nde collèges parmi les plus bas de France ? — étalon "
@@ -603,8 +606,7 @@ def figure_nuage_ratios(ratios: dict) -> None:
     t = ratios[a].merge(ratios[b], on="academie", suffixes=(f"_{a}", f"_{b}"))
     ra, rb = f"ratio_{a}", f"ratio_{b}"
 
-    absentes = sorted(t.loc[t[ra].isna() | t[rb].isna(), "academie"]
-                      .str.title())
+    absentes = sorted(academies(t.loc[t[ra].isna() | t[rb].isna(), "academie"]))
     t = t.dropna(subset=[ra, rb]).copy()
 
     t["change_de_cote"] = (t[ra] > 1) != (t[rb] > 1)
@@ -640,7 +642,7 @@ def figure_nuage_ratios(ratios: dict) -> None:
                edgecolors="white", zorder=3)
 
     annotations = [
-        ax.annotate(f"{nom.title()}{' *' if frag else ''}", xy=(xi, yi),
+        ax.annotate(f"{academie(nom)}{' *' if frag else ''}", xy=(xi, yi),
                     xytext=(11, 0), textcoords="offset points", fontsize=7.5,
                     color=ENCRE, va="center", ha="left",
                     arrowprops=dict(arrowstyle="-", color=MUET, linewidth=0.5,

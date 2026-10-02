@@ -58,6 +58,7 @@ from src.config import FIGURES, PROJECT_ROOT
 from src.carte_enveloppe import SEUIL_OPTIMAL, SEUIL_PLACES, ratio_lisible
 from src.etalons import ETALONS, fichier_academies
 from src.etiquettes import placer_etiquettes
+from src.noms import academie, academies
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
@@ -262,7 +263,7 @@ def figure_nuage(t: pd.DataFrame) -> None:
     for xi, yi, nom, frag in zip(x[dedans], y[dedans], cadrees["academie"],
                                  cadrees["fragile"]):
         annotations.append(ax.annotate(
-            f"{nom.title()}{' *' if frag else ''}", xy=(xi, yi),
+            f"{academie(nom)}{' *' if frag else ''}", xy=(xi, yi),
             xytext=(11, 0), textcoords="offset points", fontsize=7.5,
             color=ENCRE, va="center", ha="left",
             arrowprops=dict(arrowstyle="-", color=MUET, linewidth=0.5,
@@ -271,7 +272,7 @@ def figure_nuage(t: pd.DataFrame) -> None:
     # ---- les academies hors cadre, signalees et non tues -------------------
     if len(hors):
         lignes = [
-            f"{nom.title()} : {va:.2f} / {vb:.2f}".replace(".", ",")
+            f"{academie(nom)} : {va:.2f} / {vb:.2f}".replace(".", ",")
             for nom, va, vb in zip(hors["academie"], hors[ra], hors[rb])]
         # Une fleche vers le coin dit dans quelle direction elles se trouvent,
         # ce qu'un simple encadre ne dirait pas.
@@ -346,7 +347,7 @@ def figure_nuage(t: pd.DataFrame) -> None:
 
     n_change = int(t["change_de_cote"].sum())
     corr = f"{cadrees[ra].corr(cadrees[rb]):+.2f}".replace(".", ",")
-    noms_hors = " et ".join(nom.title() for nom in hors["academie"])
+    noms_hors = " et ".join(academies(hors["academie"]))
 
     fig.suptitle("Les deux étalons placent-ils les académies au même endroit ?",
                  fontsize=14, fontweight="bold", x=0.02, ha="left", y=0.978)

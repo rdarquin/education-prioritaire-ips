@@ -58,6 +58,7 @@ import pandas as pd
 
 from src.config import DATA_PROCESSED, FIGURES, PROJECT_ROOT
 from src.etiquettes import placer_etiquettes
+from src.noms import academie, academies
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
@@ -247,7 +248,7 @@ def figure(aca: pd.DataFrame, ajustement: dict) -> None:
     annotations = []
     for xi, yi, nom in zip(x, y, cadrees["academie"]):
         annotations.append(ax.annotate(
-            nom.title(), xy=(xi, yi), xytext=(11, 0),
+            academie(nom), xy=(xi, yi), xytext=(11, 0),
             textcoords="offset points", fontsize=7, color=ENCRE,
             va="center", ha="left",
             arrowprops=dict(arrowstyle="-", color=MUET, linewidth=0.5,
@@ -260,7 +261,7 @@ def figure(aca: pd.DataFrame, ajustement: dict) -> None:
     # ---- les academies hors cadre, signalees et non tues -------------------
     if len(hors):
         lignes = [
-            f"{nom.title()} : IPS {ips:.0f}, score {score:.0f}"
+            f"{academie(nom)} : IPS {ips:.0f}, score {score:.0f}"
             for nom, ips, score in zip(hors["academie"], hors["ips_moyen"],
                                        hors["eval6_moyen"])]
         # La fleche part de la note vers le coin inferieur gauche, ou les deux
@@ -325,11 +326,11 @@ def figure(aca: pd.DataFrame, ajustement: dict) -> None:
         ".", ",")
     pente_txt = f"{ajustement['coefficients'][0]:.2f}".replace(".", ",")
     sigma_txt = f"{ajustement['sigma']:.1f}".replace(".", ",")
-    noms_hors = " et ".join(nom.title() for nom in hors["academie"])
+    noms_hors = " et ".join(academies(hors["academie"]))
 
     atypiques = aca[aca["atypique"]].sort_values("residu")
     noms = ", ".join(
-        f"{a.title()} ({r:+.0f})" for a, r in
+        f"{academie(a)} ({r:+.0f})" for a, r in
         zip(atypiques["academie"], atypiques["residu"])) or "aucune"
 
     fig.suptitle("Le niveau à l'entrée en 6ᵉ suit-il l'IPS de l'académie ?",

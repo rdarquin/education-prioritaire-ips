@@ -41,6 +41,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import FIGURES, PROJECT_ROOT
+from src.noms import academie
 from src.etalons import (ETALONS, fichier_academies, fichier_scores,
                          nom_figure)
 
@@ -192,7 +193,7 @@ def figure(colleges: pd.DataFrame, academies: pd.DataFrame,
                 color=ENCRE, linewidth=1.8, zorder=3)
 
     # Trois etiquettes seulement, assez espacees pour tenir sur une ligne.
-    etiquettes = [(seuils[nom], nom.title(), ENCRE_2, "normal")
+    etiquettes = [(seuils[nom], academie(nom), ENCRE_2, "normal")
                   for nom in nommees]
     etiquettes.append((seuil_national, "National", ENCRE, "bold"))
 

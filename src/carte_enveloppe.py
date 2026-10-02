@@ -59,6 +59,7 @@ from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
 
 from src.cartographie import charger_contours
 from src.config import FIGURES, PROJECT_ROOT
+from src.noms import academie
 from src.etalons import (ETALONS, fichier_academies, fichier_scores,
                          nom_figure)
 
@@ -225,7 +226,7 @@ def figure(academies: pd.DataFrame, gdf, cle: str, etalon: dict) -> None:
                     fontsize=6.8, fontweight="bold", color=ENCRE,
                     path_effects=liec)
         if nom in nommees:
-            ax.annotate(nom.title(), xy=(point.x, point.y), xytext=(0, -9),
+            ax.annotate(academie(nom), xy=(point.x, point.y), xytext=(0, -9),
                         textcoords="offset points", ha="center", va="top",
                         fontsize=6.5, color=ENCRE_2, path_effects=liec)
 
@@ -261,7 +262,7 @@ def figure(academies: pd.DataFrame, gdf, cle: str, etalon: dict) -> None:
         fragiles = ""
     else:
         noms = ", ".join(
-            f"{a.title()} ({int(k)}/{int(d)})" for a, k, d in
+            f"{academie(a)} ({int(k)}/{int(d)})" for a, k, d in
             zip(petites["academie"], petites["classes"],
                 petites["defavorises_national"]))
         # La liste s'allonge avec le nombre d'academies concernees : sans

@@ -52,8 +52,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from src.cartographie import charger_contours
 from src.cartographie_score import MIN_ETABLISSEMENTS, SEUIL_SIGNIFICATIF
 from src.config import FIGURES, PROJECT_ROOT
+from src.noms import departements
 
 DOSSIER_TABLES = PROJECT_ROOT / "outputs" / "tables"
 
@@ -79,6 +81,11 @@ def charger() -> pd.DataFrame:
             f"uv run python -m src.cartographie_score")
 
     dep = pd.read_csv(fichier, dtype={"code_departement": str})
+    # Les noms du ministere sont en majuscules non accentuees. Les contours
+    # IGN, eux, portent le libelle correctement ecrit.
+    libelles = departements(charger_contours("FRANCE_ENTIERE_DROM_RAPPROCHES"))
+    dep["departement"] = dep["code_departement"].map(libelles).fillna(
+        dep["departement"].str.title())
     dep["zone"] = np.where(
         dep["code_departement"].str.startswith(("97", "98")), "outre-mer", "métropole")
     return dep
@@ -147,7 +154,7 @@ def etiqueter(ax, dep: pd.DataFrame, xmax: float, ymax: float) -> None:
         a_droite = x < 0.62 * xmax
         ecart_x = 0.025 * xmax
         ax.annotate(
-            r["departement"].title(),
+            r["departement"],
             xy=(x, y),
             xytext=(x + ecart_x if a_droite else x - ecart_x, candidat),
             textcoords="data",
