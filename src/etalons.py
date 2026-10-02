@@ -60,6 +60,9 @@ ETALONS = {
             "en deçà, la DEPP recommande de ne pas interpréter une différence "
             "d'IPS ; la borne haute est une convention, qui isole la queue "
             "extrême.",
+        # En deca de cet ecart, deux valeurs ne se distinguent pas. C'est la
+        # recommandation du producteur de la donnee.
+        "marge_interpretable": 3.0,
         # Pas de l'histogramme et arrondi d'affichage : l'IPS s'etale sur une
         # centaine de points, le score de sixieme sur plusieurs centaines.
         "pas_histogramme": 2.0,
@@ -87,6 +90,10 @@ ETALONS = {
             "moyenner ne réduit presque pas l'erreur. La borne vaut deux "
             "erreurs-types. La borne haute, elle, est calée sur la même rareté "
             "que les 10 points d'IPS.",
+        # Deux erreurs-types de la moyenne d'un college : voir ci-dessus. La
+        # DEPP ne publie pas de recommandation pour ce score, celle-ci est
+        # construite sur l'ecart-type qu'elle publie.
+        "marge_interpretable": 8.0,
         "pas_histogramme": 5.0,
         "decimales": 1,
     },

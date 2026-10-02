@@ -519,6 +519,45 @@ Une symétrie à ne pas lire comme un résultat : les enveloppes étant conserv�
 nombre de collèges sur-classés égale **nécessairement** celui des sous-classés, cran par
 cran. C'est une propriété du calcul.
 
+### Les désaccords que les marges n'expliquent pas
+
+La matrice précédente compte comme désaccord des écarts que l'instrument ne permet pas
+de trancher. Les trois niveaux sont séparés par **deux seuils**, et autour de chacun
+l'étalon est aveugle : **±3 points d'IPS** — la recommandation de la DEPP — et **±8
+points de score de 6ᵉ**, soit deux erreurs-types de la moyenne d'un collège.
+
+Un collège qui tombe dans l'une de ces marges a plusieurs niveaux plausibles. Son
+classement observé ne peut donc pas être contredit s'il figure parmi eux.
+
+![Matrices de classement tenant compte des marges](outputs/figures/matrices_classement_marges.png)
+
+**Commentaire à ajouter moi meme**
+
+| | Sans marge | **Avec marges** |
+|---|---:|---:|
+| IPS — diagonale | 87,0 % | **93,5 %** |
+| IPS — kappa | 0,70 | **0,85** |
+| Score de 6ᵉ — diagonale | 81,2 % | **94,2 %** |
+| Score de 6ᵉ — kappa | 0,55 | **0,83** |
+
+**Cette amélioration n'est pas un résultat** : c'est le prix de l'aveu d'imprécision. On
+cesse simplement de compter comme désaccords des cas sur lesquels on ne peut pas se
+prononcer. Ce qui **reste** hors diagonale, en revanche, compte : **348 collèges** au
+sens de l'IPS et **310** au sens du score de 6ᵉ sont franchement du mauvais côté d'un
+seuil, au-delà de ce que l'instrument autorise. Ce sont les seuls cas sur lesquels ce
+travail se prononce.
+
+**Une limite propre au score de 6ᵉ.** Les deux seuils sont distants de 11 points pour
+les deux étalons. La marge de l'IPS valant 3, les deux zones restent disjointes. Celle
+du score de 6ᵉ valant 8, **elles se recouvrent** : 375 collèges s'y trouvent, pour
+lesquels aucun des trois niveaux ne peut être exclu. Le score de 6ᵉ est donc mal armé
+pour un classement à trois niveaux — et c'est l'essentiel de son gain apparent.
+
+Dernier point de lecture : les totaux de ligne ne coïncident plus avec ceux de colonne,
+à la différence de la matrice précédente. Un collège de la marge prend son niveau
+observé, ce qui déplace les effectifs attendus. Les colonnes, elles, restent les
+enveloppes réelles.
+
 ## Limites
 
 ### Ce que mesure l'indicateur
