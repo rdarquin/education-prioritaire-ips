@@ -122,6 +122,7 @@ uv run python -m src.carte_enveloppe
 uv run python -m src.ratios_enveloppe
 uv run python -m src.niveau_academies
 uv run python -m src.rep_plus
+uv run python -m src.matrices_classement
 ```
 
 Chaque module de figures produit **deux versions de chaque visuel** : une sur l'IPS,
@@ -148,6 +149,7 @@ une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le
 | `src/ratios_enveloppe.py` | nuage des ratios d'enveloppe des deux étalons, académie par académie |
 | `src/niveau_academies.py` | nuage du niveau moyen à l'entrée en 6ᵉ contre l'IPS moyen, par académie |
 | `src/rep_plus.py` | second volet : même mécanique sur la seule enveloppe REP+ |
+| `src/matrices_classement.py` | synthèse : matrices 3x3 du classement observé contre l'attendu |
 | `src/cartographie_score.py` | cartes départementales des écarts significatifs |
 | `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
@@ -478,6 +480,44 @@ budgétaire calculé sur une seule place ne mesurerait que le hasard du collège
 C'est une limite du *seuil*, pas du *ratio* : les deux quantités n'ont pas le même
 besoin. Le ratio ci-dessus reste calculable parce qu'il compare à un ensemble optimal
 national, sans jamais avoir à trancher à l'intérieur d'une académie.
+
+---
+
+## Synthèse : le dispositif place-t-il chaque collège au bon niveau ?
+
+Tout ce qui précède raisonne en binaire — classé ou non — et traite les deux niveaux
+séparément. Or le dispositif est **gradué**, et un collège peut être mal placé de deux
+manières très différentes : mettre REP là où il faudrait REP+ n'est pas la même chose
+que ne rien mettre du tout.
+
+Les deux matrices croisent les trois niveaux d'un coup. Chaque étalon réaffecte les
+collèges **à enveloppes inchangées** : les 362 plus bas deviennent REP+, les 732
+suivants REP, le reste hors éducation prioritaire. Les totaux de ligne égalent donc
+exactement ceux de colonne — ce n'est pas un classifieur comparé à une vérité, mais une
+**réallocation sous la même contrainte budgétaire**.
+
+![Matrices de classement, les deux étalons](outputs/figures/matrices_classement.png)
+
+**Commentaire à ajouter moi meme**
+
+Trois lectures.
+
+**La diagonale** : 87,0 % des collèges au sens de l'IPS, 81,2 % au sens du score de 6ᵉ.
+Mais 79 % des collèges sont hors éducation prioritaire, et une affectation au hasard
+respectant les marges tomberait souvent juste. Le **kappa pondéré** corrige de ce
+hasard et compte double un désaccord de deux crans : il vaut **0,70** et **0,55**.
+
+**Les coins** : 21 collèges au sens de l'IPS sont mal placés de deux crans — 10 non
+classés que l'IPS mettrait en REP+, et 11 REP+ qu'il laisserait hors du dispositif. Au
+score de 6ᵉ, ils sont 86.
+
+**La ligne du milieu** : REP est de loin le niveau le moins bien identifié — 397 sur
+732 au sens de l'IPS, soit 54 %, contre 94 % pour les non classés et 72 % pour les
+REP+. Coincé entre deux autres, il reçoit et cède des collèges des deux côtés.
+
+Une symétrie à ne pas lire comme un résultat : les enveloppes étant conservées, le
+nombre de collèges sur-classés égale **nécessairement** celui des sous-classés, cran par
+cran. C'est une propriété du calcul.
 
 ## Limites
 
