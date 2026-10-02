@@ -56,6 +56,7 @@ from src.analyse import charger, restreindre_au_public
 from src.carte_enveloppe import (DIVERGENTE, DROM_ACADEMIES,
                                  contours_academiques)
 from src.cartographie import annoter_drom, charger_contours
+from src.etiquettes import placer_etiquettes
 from src.config import FIGURES, PROJECT_ROOT
 from src.etalons import ETALONS
 from src.score_ecart import ajouter_score, controler_identite
@@ -580,6 +581,176 @@ def figure_ratio(df: pd.DataFrame, info: dict, aca: pd.DataFrame) -> None:
     print(f"[+] {chemin.name}")
 
 
+def figure_nuage_ratios(ratios: dict) -> None:
+    """Les deux ratios REP+ face a face, une academie par point.
+
+    Les deux cartes precedentes ne se comparent pas facilement : on ne lit pas
+    un deplacement en confrontant deux teintes sur deux fonds distincts. Ici la
+    DIAGONALE porte la lecture — un point dessus signifie que les deux etalons
+    s'accordent exactement — et les deux droites a 1 decoupent les quadrants
+    d'accord et de desaccord.
+
+    POURQUOI LA CORSE EST ABSENTE
+
+    Elle n'a aucun college dans l'ensemble optimal du score de sixieme : son
+    ratio n'y est pas defini, et un point sans ordonnee ne se place pas. Elle
+    est nommee dans la note plutot que silencieusement omise.
+    """
+    cles = list(ETALONS)
+    a, b = cles
+    t = ratios[a].merge(ratios[b], on="academie", suffixes=(f"_{a}", f"_{b}"))
+    ra, rb = f"ratio_{a}", f"ratio_{b}"
+
+    absentes = sorted(t.loc[t[ra].isna() | t[rb].isna(), "academie"]
+                      .str.title())
+    t = t.dropna(subset=[ra, rb]).copy()
+
+    t["change_de_cote"] = (t[ra] > 1) != (t[rb] > 1)
+    t["fragile"] = t[f"optimal_{a}"].lt(SEUIL_FRAGILE) | t[f"optimal_{b}"].lt(
+        SEUIL_FRAGILE)
+
+    x, y = np.log2(t[ra].to_numpy()), np.log2(t[rb].to_numpy())
+    places = t[f"places_{a}"].to_numpy()
+    tailles = 24 + 560 * np.sqrt(places / places.max())
+    couleurs = np.where(~t["change_de_cote"], MUET,
+                        np.where(t[ra] > 1, BLEU, ORANGE))
+
+    fig, ax = plt.subplots(figsize=(12.6, 12.4))
+    fig.subplots_adjust(left=0.072, right=0.978, top=0.858, bottom=0.218)
+
+    valeurs = np.concatenate([x, y])
+    marge = 0.08 * (valeurs.max() - valeurs.min())
+    borne = (valeurs.min() - marge, valeurs.max() + marge)
+
+    ax.plot(borne, borne, color=ENCRE_2, linewidth=1.0, linestyle="--",
+            zorder=1)
+    bas = borne[0] + 0.14 * (borne[1] - borne[0])
+    ax.annotate("les deux étalons s'accordent", xy=(bas, bas),
+                xytext=(8, -12), textcoords="offset points", fontsize=8,
+                color=ENCRE_2, rotation=45, rotation_mode="anchor",
+                ha="left", va="center")
+    ax.axvline(0.0, color=ENCRE, linewidth=1.1, zorder=2)
+    ax.axhline(0.0, color=ENCRE, linewidth=1.1, zorder=2)
+
+    ax.scatter(x, y, s=tailles, c=couleurs, alpha=0.75, linewidths=0.6,
+               edgecolors="white", zorder=3)
+
+    annotations = [
+        ax.annotate(f"{nom.title()}{' *' if frag else ''}", xy=(xi, yi),
+                    xytext=(11, 0), textcoords="offset points", fontsize=7.5,
+                    color=ENCRE, va="center", ha="left",
+                    arrowprops=dict(arrowstyle="-", color=MUET, linewidth=0.5,
+                                    shrinkA=0, shrinkB=2))
+        for xi, yi, nom, frag in zip(x, y, t["academie"], t["fragile"])]
+    restantes = placer_etiquettes(fig, ax, annotations, places)
+    if restantes:
+        print(f"  {restantes} etiquettes sans position libre")
+
+    graduations = [g for g in (0.14, 0.25, 0.5, 0.67, 1.0, 1.5, 2.0, 3.0, 4.0)
+                   if borne[0] <= np.log2(g) <= borne[1]]
+    for poser in (ax.set_xticks, ax.set_yticks):
+        poser([np.log2(g) for g in graduations])
+    etiquettes = [f"{g:g}".replace(".", ",") for g in graduations]
+    ax.set_xticklabels(etiquettes, fontsize=8.5)
+    ax.set_yticklabels(etiquettes, fontsize=8.5)
+    ax.set_xlim(*borne)
+    ax.set_ylim(*borne)
+    ax.set_aspect("equal")  # sans quoi la diagonale ne serait plus a 45°
+
+    ax.set_xlabel(f"Ratio d'enveloppe REP+ selon l'{ETALONS[a]['libelle']}",
+                  fontsize=10, labelpad=6)
+    ax.set_ylabel(f"Ratio d'enveloppe REP+ selon le {ETALONS[b]['libelle']}",
+                  fontsize=10, labelpad=6)
+    ax.grid(True, linewidth=0.5, color=GRILLE)
+    ax.set_axisbelow(True)
+    for bord in ["top", "right"]:
+        ax.spines[bord].set_visible(False)
+
+    poignees = [
+        plt.Line2D([], [], marker="o", linestyle="", markersize=8,
+                   markerfacecolor=MUET, markeredgecolor="white",
+                   label="les deux étalons s'accordent sur le sens"),
+        plt.Line2D([], [], marker="o", linestyle="", markersize=8,
+                   markerfacecolor=BLEU, markeredgecolor="white",
+                   label="sur-dotée selon l'IPS, sous-dotée selon le score"),
+        plt.Line2D([], [], marker="o", linestyle="", markersize=8,
+                   markerfacecolor=ORANGE, markeredgecolor="white",
+                   label="sous-dotée selon l'IPS, sur-dotée selon le score"),
+    ]
+    premiere = ax.legend(handles=poignees, loc="upper left", fontsize=8.5,
+                         frameon=True, framealpha=0.96, edgecolor=GRILLE)
+    premiere.get_frame().set_linewidth(0.6)
+    ax.add_artist(premiere)
+
+    reperes = [3, 15, 40]
+    secondes = [plt.Line2D([], [], marker="o", linestyle="",
+                           markeredgecolor=MUET, markerfacecolor="white",
+                           markersize=np.sqrt(24 + 560 * np.sqrt(
+                               n / places.max())) / 2,
+                           label=f"{n} places")
+                for n in reperes]
+    # Sous la premiere legende et non en bas a droite : ce coin-la est occupe
+    # par la Guadeloupe, dont l'etiquette se trouvait recouverte.
+    seconde = ax.legend(handles=secondes, loc="upper left",
+                        bbox_to_anchor=(0.0, 0.88), fontsize=8.5,
+                        frameon=True, framealpha=0.96, edgecolor=GRILLE,
+                        labelspacing=1.5, title="Places REP+ de l'académie",
+                        title_fontsize=8.5, borderpad=1.0)
+    seconde.get_frame().set_linewidth(0.6)
+
+    n_change = int(t["change_de_cote"].sum())
+    corr = f"{t[ra].corr(t[rb]):+.2f}".replace(".", ",")
+
+    fig.suptitle("Les deux étalons dotent-ils les mêmes académies en REP+ ?",
+                 fontsize=14, fontweight="bold", x=0.02, ha="left", y=0.978)
+    fig.text(0.02, 0.936,
+             f"Une académie par point : son ratio d'enveloppe REP+ selon l'IPS "
+             f"en abscisse, selon le score de 6ᵉ en ordonnée. Un point sur la "
+             f"diagonale signifie\n"
+             f"que les deux étalons s'accordent exactement ; la distance à la "
+             f"diagonale mesure leur désaccord. La surface du point donne le "
+             f"nombre de places REP+.",
+             fontsize=9, va="top", color=ENCRE_2)
+
+    note = textwrap.fill(
+        f"{n_change} académies sur {len(t)} CHANGENT DE CÔTÉ : elles paraissent "
+        f"sur-dotées selon un étalon et sous-dotées selon l'autre. Plus de la "
+        f"moitié, donc, et les deux ratios ne corrèlent qu'à {corr}. Sur "
+        f"l'éducation prioritaire entière, le même nuage donnait 15 bascules sur "
+        f"30 et une corrélation de +0,29 : le désaccord entre instruments ne "
+        f"s'atténue pas quand on resserre le périmètre.", 152)
+    if absentes:
+        note += "\n" + textwrap.fill(
+            f"Absente du nuage, faute de ratio défini sur l'un des deux étalons "
+            f"— aucun collège dans l'ensemble optimal : {', '.join(absentes)}.",
+            152)
+
+    fig.text(0.02, 0.168, note + "\n"
+             f"(*) ratio reposant sur moins de {SEUIL_FRAGILE} collèges dans "
+             f"l'ensemble optimal, pour au moins un des deux étalons. Sur REP+ "
+             f"ce dénominateur descend à un : Paris reçoit\n"
+             f"4 places pour 1 collège, Bordeaux 3 pour 1. La position de ces "
+             f"points tient à une poignée d'établissements.\n"
+             "Les deux échelles sont logarithmiques, le ratio étant "
+             "multiplicatif : recevoir deux fois trop et deux fois trop peu sont "
+             "deux écarts de même ampleur. Les graduations\n"
+             "restent des ratios, et le repère est orthonormé pour que la "
+             "diagonale soit bien à 45°.\n"
+             "Aucun des deux étalons n'est le critère officiel de classement : un "
+             "écart à 1 mesure un désaccord entre deux instruments, pas une "
+             "erreur de répartition — et le\n"
+             "désaccord entre les deux étalons ne dit pas lequel a raison.\n"
+             "Champ : collèges publics, rentrée 2024-2025 / évaluations de "
+             "septembre 2024. Sources : DEPP (IPS, évaluations nationales de "
+             "sixième), annuaire de l'éducation.",
+             fontsize=7.5, va="top", color=ENCRE_2)
+
+    chemin = FIGURES / "rep_plus_nuage_ratios.png"
+    fig.savefig(chemin, dpi=200, facecolor="white")
+    plt.close(fig)
+    print(f"[+] {chemin.name}")
+
+
 def main() -> None:
     donnees = {}
     for cle in ETALONS:
@@ -595,12 +766,16 @@ def main() -> None:
     for cle, (df, info) in donnees.items():
         figure_cartes(df, info, contours)
 
+    ratios = {}
     for cle, (df, info) in donnees.items():
         aca = ratios_academiques(df, info)
+        ratios[cle] = aca
         figure_ratio(df, info, aca)
         chemin = DOSSIER_TABLES / f"rep_plus_ratio_{cle}.csv"
         aca.round(3).to_csv(chemin, index=False, encoding="utf-8")
         print(f"[+] {chemin.name} ({len(aca)} academies)")
+
+    figure_nuage_ratios(ratios)
 
     DOSSIER_TABLES.mkdir(parents=True, exist_ok=True)
     for cle, (df, _) in donnees.items():

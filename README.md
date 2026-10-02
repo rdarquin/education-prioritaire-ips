@@ -452,6 +452,22 @@ chaque ratio : à cette échelle, « 4,00 » seul serait trompeur là où « 4/1
 Cas limite avec le score de 6ᵉ : **la Corse ne compte aucun collège dans l'ensemble
 optimal**. Son ratio n'est pas infini, il n'existe pas — elle reste en gris.
 
+#### Les deux étalons dotent-ils les mêmes académies ?
+
+Comme dans la première partie, les deux cartes ne se comparent pas facilement. Le nuage
+suivant les met face à face : la diagonale marque l'accord exact, et les deux droites à
+1 séparent les quadrants.
+
+![Nuage des deux ratios d'enveloppe REP+ par académie](outputs/figures/rep_plus_nuage_ratios.png)
+
+**Commentaire à ajouter moi meme**
+
+**Seize académies sur vingt-neuf changent de côté** — plus de la moitié — et les deux
+ratios ne corrèlent qu'à **+0,31**. Sur l'éducation prioritaire entière, le même nuage
+donnait 15 bascules sur 30 et une corrélation de +0,29 : **le désaccord entre les deux
+instruments ne s'atténue pas quand on resserre le périmètre**. La Corse est absente du
+nuage, faute de ratio défini sur le score de 6ᵉ.
+
 ### Pourquoi pas de variante académique du score
 
 Le reste du projet calcule le score d'écart deux fois, au seuil national et au seuil
