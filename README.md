@@ -118,6 +118,8 @@ uv run python -m src.score_ecart
 uv run python -m src.distribution_ips
 uv run python -m src.distribution_ecart
 uv run python -m src.ecarts_extremes
+uv run python -m src.cartographie_score
+uv run python -m src.nuage_score
 uv run python -m src.carte_enveloppe
 uv run python -m src.ratios_enveloppe
 uv run python -m src.niveau_academies
@@ -127,7 +129,8 @@ uv run python -m src.matrices_classement
 
 Chaque module de figures produit **deux versions de chaque visuel** : une sur l'IPS,
 une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le suffixe
-`_eval6`.
+`_eval6`. Deux exceptions : `cartographie_score` et `nuage_score` ne traitent que
+l'IPS.
 
 `uv sync` installe Python 3.12 et les dépendances aux versions exactes figées dans
 `uv.lock`. Aucune donnée n'est versionnée : `src/download.py` reconstruit intégralement
@@ -140,18 +143,19 @@ une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le
 | `src/preparation.py` | nettoie, joint IPS, annuaire et évaluations de 6ᵉ, contrôle les biais d'exclusion |
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | fond de carte partagé : contours, DROM rapprochés, annotations |
+| `src/noms.py` | noms d'académies et de départements accentués, pour l'affichage |
 | `src/score_ecart.py` | score d'écart par collège, pour chaque étalon, aux seuils national et académique |
 | `src/distribution_ips.py` | distribution de l'étalon et position des seuils, national et académiques |
 | `src/distribution_ecart.py` | distribution de l'écart au seuil et sa répartition par plage |
 | `src/ecarts_extremes.py` | les cinquante écarts les plus grands, de chaque côté, par département |
+| `src/cartographie_score.py` | cartes départementales de la fréquence et de la nature des écarts |
+| `src/nuage_score.py` | nuage croisant ces deux mêmes quantités, par département |
 | `src/carte_enveloppe.py` | carte académique du ratio entre places reçues et collèges les plus bas |
 | `src/etiquettes.py` | placement des étiquettes sur un nuage de points, par positions candidates |
 | `src/ratios_enveloppe.py` | nuage des ratios d'enveloppe des deux étalons, académie par académie |
 | `src/niveau_academies.py` | nuage du niveau moyen à l'entrée en 6ᵉ contre l'IPS moyen, par académie |
 | `src/rep_plus.py` | second volet : même mécanique sur la seule enveloppe REP+ |
 | `src/matrices_classement.py` | synthèse : matrices 3x3 du classement observé contre l'attendu |
-| `src/cartographie_score.py` | cartes départementales des écarts significatifs |
-| `src/nuage_score.py` | fréquence et nature des écarts, par département |
 
 ---
 
@@ -305,6 +309,48 @@ que l'arithmétique de l'enveloppe contraint — elles comptent plus de collège
 le seuil national que de places à pourvoir.
 
 ![Nombre de collèges oubliés par département, étalon score de 6e](outputs/figures/oublis_departements_eval6.png)
+
+**Commentaire à ajouter moi meme**
+
+### Combien d'écarts, et dans quel sens, département par département
+
+Les deux cartes précédentes ne retiennent que les cinquante plus gros écarts de chaque
+côté. Celles qui suivent ne sélectionnent plus : elles portent sur **tous** les collèges
+dont l'écart dépasse 3 points d'IPS — le seuil en deçà duquel la DEPP recommande de ne
+rien interpréter — et séparent deux questions que les cartes précédentes mélangent.
+
+À gauche, la **fréquence** : la part des collèges du département concernés. À droite, la
+**nature** : la moyenne de leurs écarts signés. Les deux ne se déduisent pas l'une de
+l'autre. Un département peut s'écarter souvent dans les deux sens, ou rarement mais
+toujours dans le même.
+
+Un point de lecture décisif : chaque collège retenu pèse au moins 3 points en valeur
+absolue. **Une moyenne proche de zéro ne veut donc pas dire « peu d'écart », mais
+« autant dans un sens que dans l'autre ».**
+
+![Fréquence et nature des écarts significatifs, par département](outputs/figures/ecarts_significatifs.png)
+
+**Commentaire à ajouter moi meme**
+
+La Guadeloupe est le département où les écarts sont les plus fréquents — **19,6 % de ses
+collèges**, soit un sur cinq — mais sa moyenne signée vaut **+0,8** : les deux types s'y
+compensent presque exactement. Paris la suit de près en fréquence (16,7 %) avec une
+moyenne de **−13,7 points**, c'est-à-dire des sur-inclusions et rien d'autre. Même
+fréquence, diagnostic opposé : c'est précisément ce que la seconde carte ajoute à la
+première.
+
+Les classes de couleur sont des **quantiles de la distribution départementale**, et non
+une échelle linéaire : quelques départements extrêmes écraseraient sinon tous les
+autres. Les départements en gris ne sont pas à zéro — ce sont ceux dont l'effectif ne
+permet pas de calculer la quantité : moins de 20 collèges publics à gauche, moins de
+trois collèges significatifs à droite, l'ordonnée reposant sinon sur trop peu de cas.
+
+Le nuage suivant croise les deux variables et rend ce seuil d'effectif visible : la
+surface du point est le nombre de collèges au-delà de 3 points, dont dépend la fiabilité
+de l'ordonnée. Un point minuscule n'a qu'un seul collège derrière lui, et sa position
+hors de la bande centrale est alors **imposée par la définition, pas observée**.
+
+![Nuage de la fréquence et de la nature des écarts, par département](outputs/figures/nuage_frequence_nature.png)
 
 **Commentaire à ajouter moi meme**
 
