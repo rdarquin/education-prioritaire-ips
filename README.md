@@ -604,6 +604,108 @@ Dernier point de lecture : les totaux de ligne ne coïncident plus avec ceux de 
 observé, ce qui déplace les effectifs attendus. Les colonnes, elles, restent les
 enveloppes réelles.
 
+## Ce que ce tableau ne contient pas : les autres politiques de l'école publique
+
+Tout ce qui précède raisonne comme si l'éducation prioritaire était la seule politique
+agissant sur les collèges publics. Elle ne l'est pas. Un collège « oublié » au sens de
+l'IPS peut être pris en charge par un autre dispositif, et un collège « sur-inclus »
+peut cumuler plusieurs aides. Tant qu'on ne regarde qu'une politique, on ne mesure pas
+l'aide reçue : on mesure la cohérence d'une étiquette.
+
+Quatre familles complètent le tableau. Les trois premières sont **joignables sur l'UAI**,
+donc directement ajoutables à ce dépôt ; la quatrième ne l'est pas, et c'est un résultat
+en soi.
+
+### 1. Un second axe d'inégalité : l'éloignement
+
+L'IPS mesure une position **sociale**. Il ne dit rien de la position **géographique** —
+or un collège rural isolé et un collège de banlieue dense peuvent avoir le même IPS sans
+poser le même problème. La DEPP publie depuis 2018 un **indice d'éloignement** par
+collège, construit par analyse en composantes principales sur les distances parcourues
+par les élèves, l'offre de formation et les équipements culturels et sportifs alentour.
+Depuis 2022, les distances sont des **temps de trajet** (calculateur OSRM de l'Insee) et
+la **médiane vaut 100**, comme l'IPS est centré sur sa propre moyenne.
+
+C'est l'ajout le plus naturel pour ce dépôt, parce qu'il n'est pas d'une autre nature que
+ce qui s'y trouve déjà : c'est un **troisième étalon**. La mécanique du score d'écart et
+le registre `src/etalons.py` l'accueilleraient sans modification de principe — une
+enveloppe, un seuil budgétaire, un ratio académique. La question deviendrait : *la carte
+de l'éducation prioritaire, pensée pour la pauvreté urbaine, laisse-t-elle de côté des
+collèges que leur isolement désigne ?*
+
+Le jeu de données `fr-en-indice_eloignement_college_ap2022` est sur le **même portail et
+la même API** que les trois fichiers déjà utilisés : 27 929 lignes, soit les quatre
+rentrées 2022 à 2025 pour environ 6 980 collèges chacune — presque exactement le nombre
+de lignes IPS de la rentrée 2024-2025 (6 987). La jointure devrait donc être quasi
+intégrale, et `src/download.py` n'aurait qu'une entrée à recevoir.
+
+### 2. Des politiques ciblées qui se superposent à la carte
+
+Deux dispositifs désignent des établissements **hors** de la logique REP/REP+, et leurs
+listes sont publiées par UAI :
+
+| Dispositif | Logique | Jeu de données | Collèges |
+|---|---|---|---:|
+| **Cités éducatives** | quartiers prioritaires de la ville, approche interministérielle | `fr-en-cites_educatives` | **606** sur 4 568 établissements |
+| **Territoires éducatifs ruraux** | le pendant rural, par vagues depuis 2021 | `fr-en-territoires-educatifs-ruraux` | **308** sur 2 829 établissements |
+
+Ces deux listes permettent la question que ce travail ne peut pas poser aujourd'hui :
+**les collèges que l'IPS désigne et que REP+ ne retient pas sont-ils rattrapés
+ailleurs ?** Un oubli couvert par une cité éducative n'est pas un oubli de même nature
+qu'un oubli couvert par rien. Le second volet de ce dépôt a montré que 89 % des oublis
+REP+ sont déjà classés REP ; le même raisonnement se poursuit un cran plus loin.
+
+Les territoires éducatifs ruraux sont par ailleurs le complément direct du point
+précédent : ils visent explicitement l'isolement, que l'IPS ne capte pas.
+
+### 3. Des dispositifs déjà présents dans les données téléchargées
+
+L'annuaire de l'éducation, **déjà utilisé par ce dépôt**, porte une douzaine de colonnes
+inexploitées : `segpa`, `ulis`, `section_internationale`, `section_europeenne`,
+`section_sport`, `section_arts`, `section_cinema`, `section_theatre`, `hebergement`.
+Aucun téléchargement supplémentaire n'est nécessaire.
+
+Elles ouvrent une question d'un autre ordre, et c'est peut-être la plus intéressante.
+L'éducation prioritaire **ajoute des moyens par le bas**. Les sections sélectives —
+internationale, européenne, sportive, artistique — **trient les élèves par le haut**, à
+l'intérieur même du service public, et la littérature leur attribue un rôle dans la
+ségrégation entre collèges. Ce travail n'examine aujourd'hui qu'une moitié de ce que
+l'école publique fait à la composition sociale de ses établissements.
+
+La question se formule simplement avec les données en main : **les collèges à fort IPS
+concentrent-ils les sections sélectives, et les collèges en éducation prioritaire en
+sont-ils dépourvus ?** C'est une mesure de ségrégation interne au public, sans aucune
+donnée nouvelle.
+
+### 4. Ce qui ne peut pas être ajouté, et pourquoi
+
+Trois politiques comptent autant que les précédentes et ne sont pas reproductibles :
+
+**Les contrats locaux d'accompagnement (CLA).** C'est précisément la réponse
+institutionnelle à la critique que ce dépôt documente — sortir du label binaire pour une
+**allocation progressive et contractuelle**, visant les établissements « socialement
+proches de l'éducation prioritaire » sans y entrer. Expérimentés à la rentrée 2021 dans
+trois académies (Aix-Marseille, Lille, Nantes), étendus à douze autres, ils ne sont
+toujours pas généralisés. **Aucune liste d'établissements n'est publiée en open data** :
+le dispositif qui corrigerait l'effet de seuil mesuré ici est celui dont on ne peut pas
+vérifier le ciblage.
+
+**L'allocation progressive des moyens.** Les académies modulent la dotation horaire
+globale selon des indicateurs sociaux, par-dessus le label. C'est l'instrument qui rend
+l'aide continue là où l'étiquette est binaire — et la DHG par établissement n'est pas
+publiée.
+
+**Les groupes de besoins en sixième**, mis en place à la rentrée 2024, donc exactement
+sur le millésime analysé ici. Leur déploiement établissement par établissement n'est pas
+documenté en open data.
+
+Ces trois absences vont dans le même sens : **les dispositifs gradués sont ceux dont les
+données ne sortent pas**, tandis que le dispositif binaire est entièrement public. Ce
+n'est pas neutre pour qui veut évaluer le ciblage des moyens — et cela limite d'avance
+toute analyse, y compris celle-ci.
+
+---
+
 ## Limites
 
 ### Ce que mesure l'indicateur
@@ -737,6 +839,13 @@ degré, qui pèsent pourtant lourd dans la critique de la carte.
 - [Critères de classement des écoles en réseau d'éducation prioritaire](https://www.senat.fr/questions/base/2025/qSEQ251106739.html) — question au Sénat et réponse ministérielle, 2025
 - [Révision des zonages des réseaux d'éducation prioritaire](https://www.senat.fr/questions/base/2022/qSEQ221103796.html) — réponse ministérielle, avril 2023 : la carte n'a pas été révisée depuis 2015
 - [L'éducation prioritaire](https://www.education.gouv.fr/l-education-prioritaire-3140) — ministère chargé de l'Éducation nationale : 1 093 réseaux à la rentrée 2023
+
+**Autres politiques et indicateurs (partie « Ce que ce tableau ne contient pas »)**
+
+- [Indice d'éloignement des collèges depuis 2022](https://www.data.gouv.fr/datasets/indice-deloignement-des-colleges-depuis-2022) — DEPP, jeu `fr-en-indice_eloignement_college_ap2022` ; [note méthodologique](https://www.education.gouv.fr/depp/l-indice-d-eloignement-des-colleges-et-des-lycees-377771)
+- [Établissements membres d'une cité éducative](https://data.education.gouv.fr/explore/dataset/fr-en-cites_educatives/) — ministère chargé de l'Éducation nationale
+- [Territoires éducatifs ruraux](https://data.education.gouv.fr/explore/dataset/fr-en-territoires-educatifs-ruraux/) — DGESCO
+- [Suivi de la mise en place des contrats locaux d'accompagnement](https://www.education.gouv.fr/igesr/suivi-de-la-mise-en-place-des-contrats-locaux-d-accompagnement-cla-note-2-465288) — IGÉSR : expérimentation 2021, extension, absence de généralisation
 
 **Méthodologie de l'IPS**
 
