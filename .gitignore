@@ -17,7 +17,7 @@ data/processed/*
 !data/processed/.gitkeep
 
 # Notes personnelles : espace de brouillon, pas un livrable.
-NOTES.md
+notes/
 
 # Cache HTTP depose par cartiflette a la racine du projet.
 http_cache.sqlite

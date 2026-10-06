@@ -1,7 +1,7 @@
 [project]
 name = "ips-inegalites-scolaires"
 version = "0.1.0"
-description = "Add your description here"
+description = "Le classement en éducation prioritaire (REP, REP+) confronté à la réalité sociale et scolaire des collèges publics"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -15,4 +15,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "jupyterlab>=4.6.4",
+    "typst>=0.15.0",
 ]
