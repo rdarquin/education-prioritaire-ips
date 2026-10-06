@@ -79,6 +79,29 @@ L'écart entre REP+ et collèges publics hors dispositif atteint **30 points d'I
 Le ciblage est donc globalement très cohérent avec la réalité sociale mesurée par
 l'IPS.
 
+### Comment le dispositif est réparti sur le territoire
+
+Avant toute confrontation à un étalon, une description : quelle part des collèges
+publics de chaque académie porte le label ? La moyenne nationale vaut **20,5 %** — un
+collège public sur cinq.
+
+![Part des collèges publics classés en éducation prioritaire, par académie](outputs/figures/part_ep_academies.png)
+
+**Commentaire à ajouter moi meme**
+
+L'amplitude est considérable : de **7,3 %** à Toulouse à **100 %** à Mayotte, où les
+22 collèges publics sont tous classés. En ne retenant que la métropole, où les effectifs
+rendent la comparaison plus robuste, l'écart reste d'un **facteur 5** — la Corse culmine
+à 37,9 % et Créteil à 36,5 %, contre 7,3 % à Toulouse et 7,5 % à Rennes. Le taux corse
+repose toutefois sur 29 collèges seulement : un établissement y déplace le taux de plus
+de trois points.
+
+**Cette carte ne mesure aucun désaccord**, et c'est la raison de sa place ici plutôt que
+plus loin. Une académie très couverte peut l'être parce que ses collèges sont
+effectivement très défavorisés — c'est manifestement le cas des académies ultramarines.
+Lire ce taux comme un palmarès serait exactement l'erreur que le reste de ce dépôt
+s'emploie à éviter : seule la confrontation à un étalon permet de parler d'écart.
+
 ---
 
 ## Données
@@ -114,6 +137,7 @@ uv sync
 uv run python -m src.download
 uv run python -m src.preparation
 uv run python -m src.analyse
+uv run python -m src.carte_part_ep
 uv run python -m src.score_ecart
 uv run python -m src.distribution_ips
 uv run python -m src.distribution_ecart
@@ -129,8 +153,8 @@ uv run python -m src.matrices_classement
 
 Chaque module de figures produit **deux versions de chaque visuel** : une sur l'IPS,
 une sur le score aux évaluations de 6ᵉ. Les fichiers de la seconde portent le suffixe
-`_eval6`. Deux exceptions : `cartographie_score` et `nuage_score` ne traitent que
-l'IPS.
+`_eval6`. Trois exceptions : `cartographie_score` et `nuage_score` ne traitent que l'IPS,
+et `carte_part_ep` ne mobilise aucun étalon — il décrit le dispositif tel qu'il est.
 
 `uv sync` installe Python 3.12 et les dépendances aux versions exactes figées dans
 `uv.lock`. Aucune donnée n'est versionnée : `src/download.py` reconstruit intégralement
@@ -144,6 +168,7 @@ l'IPS.
 | `src/analyse.py` | couverture, ciblage, sensibilité au seuil, divergences territoriales |
 | `src/cartographie.py` | fond de carte partagé : contours, DROM rapprochés, annotations |
 | `src/noms.py` | noms d'académies et de départements accentués, pour l'affichage |
+| `src/carte_part_ep.py` | part des collèges publics classés en éducation prioritaire, par académie |
 | `src/score_ecart.py` | score d'écart par collège, pour chaque étalon, aux seuils national et académique |
 | `src/distribution_ips.py` | distribution de l'étalon et position des seuils, national et académiques |
 | `src/distribution_ecart.py` | distribution de l'écart au seuil et sa répartition par plage |
